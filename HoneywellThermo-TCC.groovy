@@ -781,8 +781,7 @@ def version(){
 
 def updateCheck(){
     setVersion()
-//	 def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/versions.json" ]  // This is the URI & path to your hosted JSON file
-	 def paramsUD = [uri: "https://csteele-pd.github.io/Hubitat-master/versions.json" ]  // This is the URI & path to your hosted JSON file
+	 def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/versions.json" ]  // This is the URI & path to your hosted JSON file
        try {
            httpGet(paramsUD) { respUD ->
 //           log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
