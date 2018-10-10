@@ -1,0 +1,19 @@
+{
+        "Comment": "Last updated: 09/10/2018",
+        "copyright": " &#9400; 2018 community",
+        "versions": {
+                "Application": {
+                },
+                "Driver": {
+                        "HoneywellThermoTCC": "1.1.2"
+                },
+
+                "UpdateInfo": {
+                        "Application": {
+                        },
+                        "Driver": {
+                        "HoneywellThermoTCC": "Updated 9/10/2018"
+                        }
+                }
+        }
+}
