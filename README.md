@@ -27,3 +27,4 @@ Enter name/password<br>
 Enter Device ID <br>
 Save<p>
 
+The Thermostat ID is found as the last 6 digits on the end of the TCC URL after login. 
