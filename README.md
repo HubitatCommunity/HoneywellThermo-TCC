@@ -1,6 +1,6 @@
 # HoneywellThermo-TCC
 
-This works is it contacts Honeywell over the Internet using your ID/PW and Thermostat ID. Yes, CLOUD.<p>
+This works by contacting Honeywell over the Internet using your Honeywell ID/PW and Thermostat ID. Yes, CLOUD.<p>
 
 If you never setup TCC, then you won't have that info.<p>
 
