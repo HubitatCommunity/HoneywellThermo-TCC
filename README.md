@@ -1,29 +1,29 @@
 # HoneywellThermo-TCC
 
-This works is it contacts Honeywell over the Internet using your ID/PW and Thermostat ID. Yes, CLOUD.
+This works is it contacts Honeywell over the Internet using your ID/PW and Thermostat ID. Yes, CLOUD.<p>
 
-If you never setup TCC, then you won't have that info
+If you never setup TCC, then you won't have that info.<p>
 
-https://www.mytotalconnectcomfort.com/portal/
+https://www.mytotalconnectcomfort.com/portal/<p>
 
-Create an account if you don't have one.
+Create an account if you don't have one.<p>
 
 
-<b>In Hubitat:</b>
+<b>In Hubitat:</b><p>
 
-Drivers Code
-New Driver
-(paste in code from this repo)
-Save
+Drivers Code<br>
+New Driver<br>
+(paste in code from this repo)<br>
+Save<p>
 
-Device
-New virtual device
-<find user code at bottom>
-save
+Device<br>
+New virtual device<br>
+<find user code at bottom><br>
+save<p>
 
-Find the new device
-Find Preferences down page
-Enter name/password
-Enter Device ID 
-Save
+Find the new device<br>
+Find Preferences down page<br>
+Enter name/password<br>
+Enter Device ID <br>
+Save<p>
 
