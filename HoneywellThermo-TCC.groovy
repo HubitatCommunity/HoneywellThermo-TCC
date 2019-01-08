@@ -209,8 +209,8 @@ def setHeatingSetpoint(Double temp)
     device.data.CoolSetpoint = 'null'
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 
@@ -227,8 +227,8 @@ def setHeatingSetpoint(temp) {
     device.data.CoolSetpoint = 'null'
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 
@@ -264,8 +264,8 @@ def setCoolingSetpoint(double temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 
@@ -282,8 +282,8 @@ def setCoolingSetpoint(temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 
@@ -299,8 +299,8 @@ def setTargetTemp(temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 }
@@ -311,8 +311,8 @@ def setTargetTemp(double temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='1'
-    device.data.StatusCool='1'
+    device.data.StatusHeat='2'
+    device.data.StatusCool='2'
     device.data.FanMode = 'null'
     setStatus()
 }
