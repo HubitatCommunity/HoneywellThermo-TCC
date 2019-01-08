@@ -37,6 +37,7 @@
 * csteele: added Cobra's Version Check code, modified debug logging to match Hubitat standards, (on/off and 30 min limit)
 *    removed Relative Humidity and SmartThings "main" paragraph
 *
+* csteele: merged Pull Request from rylatorr: Use permanent hold instead of temporary
 */
 metadata {
     definition (name: "Total Comfort API B", namespace: 
@@ -83,7 +84,7 @@ metadata {
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
-     state.Version = "1.1.3"
+     state.Version = "1.1.4"
      state.InternalName = "HoneywellThermoTCC"
      sendEvent(name: "DriverAuthor", value: "cSteele", isStateChange: true)
      sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
