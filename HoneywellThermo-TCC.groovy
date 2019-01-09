@@ -38,6 +38,9 @@
 *    removed Relative Humidity and SmartThings "main" paragraph
 *
 * csteele: merged Pull Request from rylatorr: Use permanent hold instead of temporary
+*
+* csteele: allow option of permanent or temporary hold.
+*
 */
 metadata {
     definition (name: "Total Comfort API B", namespace: 
@@ -61,22 +64,24 @@ metadata {
         attribute  "DriverVersion",      "string"
         attribute  "DriverStatus",       "string"
         attribute  "DriverUpdate",       "string"
+        attribute  "ThermostatOperatingState", "string"
 
     }
 
-//    main "temperature"
-//    details(["temperature", "thermostatMode", "thermostatFanMode",   
-//             "heatLevelUp", "heatingSetpoint" , "heatLevelDown", 
-//             "coolLevelUp", "coolingSetpoint", "coolLevelDown" , 
-//             "thermostatOperatingState", "fanOperatingState",
-//             "refresh", "relativeHumidity", "outdoorTemperature",
-//             "outdoorHumidity", "followSchedule","status"])
+    main "temperature"
+    details(["temperature", "thermostatMode", "thermostatFanMode",   
+             "heatLevelUp", "heatingSetpoint" , "heatLevelDown", 
+             "coolLevelUp", "coolingSetpoint", "coolLevelDown" , 
+             "thermostatOperatingState", "fanOperatingState",
+             "refresh", "relativeHumidity", "outdoorTemperature",
+             "outdoorHumidity", "followSchedule","status"])
 
     preferences {
         input("username", "text", title: "Username", description: "Your Total Comfort User Name", required: true)
         input("password", "password", title: "Password", description: "Your Total Comfort password",required: true)
         input("honeywelldevice", "text", title: "Device ID", description: "Your Device ID", required: true)
         input ("enableOutdoorTemps", "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No")
+        input ("setPermHold", "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary")
         input ("tempScale", "enum", title: "Fahrenheit or Celsius?", options: ["F", "C"], required: true)
         input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
     }
@@ -84,7 +89,7 @@ metadata {
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
-     state.Version = "1.1.4"
+     state.Version = "1.1.5"
      state.InternalName = "HoneywellThermoTCC"
      sendEvent(name: "DriverAuthor", value: "cSteele", isStateChange: true)
      sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
@@ -210,8 +215,8 @@ def setHeatingSetpoint(Double temp)
     device.data.CoolSetpoint = 'null'
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 
@@ -228,8 +233,8 @@ def setHeatingSetpoint(temp) {
     device.data.CoolSetpoint = 'null'
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 
@@ -265,8 +270,8 @@ def setCoolingSetpoint(double temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 
@@ -283,8 +288,8 @@ def setCoolingSetpoint(temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 
@@ -300,8 +305,8 @@ def setTargetTemp(temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 }
@@ -312,8 +317,8 @@ def setTargetTemp(double temp) {
     device.data.CoolSetpoint = temp
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat='2'
-    device.data.StatusCool='2'
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
     setStatus()
 }
@@ -344,8 +349,8 @@ def setThermostatMode(mode) {
     device.data.CoolSetpoint = 'null'
     device.data.HeatNextPeriod = 'null'
     device.data.CoolNextPeriod = 'null'
-    device.data.StatusHeat=1
-    device.data.StatusCool=1
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
     device.data.FanMode = 'null'
 
     setStatus()
@@ -484,7 +489,7 @@ def getStatus() {
 
     httpGet(params) { response ->
         logDebug "Request was successful, $response.status"
-        //logDebug "data = $response.data"
+        //log.info "data = $response.data"
         logDebug "ld = $response.data.latestData"
 
         def curTemp = response.data.latestData.uiData.DispTemperature
@@ -559,9 +564,9 @@ def getStatus() {
 
         //End Operating State
 
-        //  logDebug curTemp
-        // logDebug fanMode
-        // logDebug switchPos
+        // logDebug ("curTemp:   ${curTemp}") 
+        // logDebug ("fanMode:   ${fanMode}") 
+        // logDebug ("switchPos: ${switchPos}") 
 
         //fan mode 0=auto, 2=circ, 1=on
 
@@ -581,22 +586,22 @@ def getStatus() {
         if(switchPos==4 || switchPos==5)
         switchPos = 'auto'
 
-        def formattedCoolSetPoint = String.format("%5.1f", coolSetPoint)
-        def formattedHeatSetPoint = String.format("%5.1f", heatSetPoint)
-        def formattedTemp = String.format("%5.1f", curTemp)
-
-        def finalCoolSetPoint = formattedCoolSetPoint as BigDecimal
-        def finalHeatSetPoint = formattedHeatSetPoint as BigDecimal
-        def finalTemp = formattedTemp as BigDecimal
+ //       def formattedCoolSetPoint = String.format("%5.1f", coolSetPoint)
+ //       def formattedHeatSetPoint = String.format("%5.1f", heatSetPoint)
+ //       def formattedTemp = String.format("%5.1f", curTemp)
+//
+ //       def finalCoolSetPoint = formattedCoolSetPoint as BigDecimal
+ //       def finalHeatSetPoint = formattedHeatSetPoint as BigDecimal
+ //       def finalTemp = formattedTemp as BigDecimal
 
         //Send events 
         sendEvent(name: 'thermostatOperatingState', value: operatingState)
         sendEvent(name: 'fanOperatingState', value: fanState)
         sendEvent(name: 'thermostatFanMode', value: fanMode)
         sendEvent(name: 'thermostatMode', value: switchPos)
-        sendEvent(name: 'coolingSetpoint', value: finalCoolSetPoint )
-        sendEvent(name: 'heatingSetpoint', value: finalHeatSetPoint )
-        sendEvent(name: 'temperature', value: finalTemp, state: switchPos)
+        sendEvent(name: 'coolingSetpoint', value: coolSetPoint )
+        sendEvent(name: 'heatingSetpoint', value: heatSetPoint )
+        sendEvent(name: 'temperature', value: curTemp, state: switchPos)
         sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
 
 
@@ -673,7 +678,7 @@ def doRequest(uri, args, type, success) {
 }
 
 def refresh() {
-    logDebug "Executing 'refresh'"
+    log.info "Executing 'refresh'"
     def unit = getTemperatureScale()
     logDebug "units = $unit"
     login()
@@ -682,7 +687,7 @@ def refresh() {
 }
 
 def login() {  
-    logDebug "Executing 'login'"
+    log.info "Executing 'login'"
 
     def params = [
         uri: 'https://www.mytotalconnectcomfort.com/portal',
@@ -767,10 +772,14 @@ def isLoggedIn() {
 
 def updated()
 {
-   logDebug "in updated"
+    logDebug "in updated"
     state.DisplayUnits = settings.tempScale
     logDebug "display units now = $state.DisplayUnits"
     if (debugOutput) runIn(1800,logsOff)
+    
+    if (setPermHold == "Permanent") { state.PermHold = 2 } else { state.PermHold = 1 }
+    logDebug "PermHold now = ${state.PermHold}"
+
     version()
 }
 
