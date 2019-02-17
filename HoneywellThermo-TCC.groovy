@@ -1,50 +1,48 @@
 /**
- *  Hubitat Import URL: https://raw.githubusercontent.com/HubitatCommunity/HoneywellThermo-TCC/master/HoneywellThermo-TCC.groovy
- */
-/**
-*  Total Comfort API
-*   
-*  Based on Code by Eric Thomas, Edited by Bob Jase, and C Steele
-*
-*  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-*  in compliance with the License. You may obtain a copy of the License at:
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*   lgk v 3 added optional outdoor temp sensors and preferences for it, also made api login required.
-*  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
-*  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
-*  for the specific language governing permissions and limitations under the License.
-* lgk version 4 supports celsius and fahrenheit with option, and now colors.
-* lgk version 5, due to intermittant update failures added last update date/time tile so that you can see when it happended
-* not there is a new input tzoffset which defaults to my time ie -5 which you must set .
-* lgk version 6 add support for actually knowing the fan is on or not (added tile),
-* and also the actual operating state ie heating,cooling or idle via new response variables.
-* lgk version 7, change the new operating state to be a value vs standard tile
-* to work around a bug smartthings caused in the latest 2.08 release with text wrapping.
-* related also added icons to the operating state, and increase the width of the last update
-* to avoid wrapping.
-
-* lgk version 8 figured out how to do time without user input of time zone offset.. and this works with and without
-* daylight saving time.
-*
-* lgk version 9 an indicator on the bottom which indicates if following schedule or vacation or temp hold.
-* it also displays green for following schedule and red for other modes. 
-* you can also select it to cancel a hold and go back to following schedule.
-* however, the temp will not update till next refresh even though you have cancelled the hold.
-* One problem, is that the colors are not working correctly in ios currently and the label is not 
-* wrapping in  android as it is supposed to.
-*
-* (Bob) version 10 deals with the fact that Honeywell decided to poison the well with expired cookies
-* I also changed it so that it polls for an update every 60 seconds
-*
-* csteele: added Cobra's Version Check code, modified debug logging to match Hubitat standards, (on/off and 30 min limit)
-*    removed Relative Humidity and SmartThings "main" paragraph
-*
-* csteele: merged Pull Request from rylatorr: Use permanent hold instead of temporary
-*
-* csteele: allow option of permanent or temporary hold.
-*
+ * IMPORT URL: https://raw.githubusercontent.com/HubitatCommunity/HoneywellThermo-TCC/master/HoneywellThermo-TCC.groovy
+ *
+ *  Total Comfort API
+ *   
+ *  Based on Code by Eric Thomas, Edited by Bob Jase, and C Steele
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *
+ * csteele: v1.2     option of polling interval, off through 60 min. added txtEnable for Description logging.
+ * csteele: v1.1.5   allow option of permanent or temporary hold.
+ * csteele: v1.1     merged Pull Request from rylatorr: Use permanent hold instead of temporary
+ * csteele: v1.0     added Cobra's Version Check code, modified debug logging to match Hubitat standards, (on/off and 30 min limit)
+ *                      removed Relative Humidity and SmartThings "main" paragraph
+ *
+ * (Bob) version 10 deals with the fact that Honeywell decided to poison the well with expired cookies
+ *    I also changed it so that it polls for an update every 60 seconds
+ * lgk version 9 an indicator on the bottom which indicates if following schedule or vacation or temp hold.
+ *    it also displays green for following schedule and red for other modes. 
+ *    you can also select it to cancel a hold and go back to following schedule.
+ *    however, the temp will not update till next refresh even though you have cancelled the hold.
+ *    One problem, is that the colors are not working correctly in ios currently and the label is not 
+ *    wrapping in  android as it is supposed to.
+ * lgk version 8 figured out how to do time without user input of time zone offset.. and this works with and without
+ *    daylight saving time.
+ * lgk version 7, change the new operating state to be a value vs standard tile
+ *    to work around a bug smartthings caused in the latest 2.08 release with text wrapping.
+ *    related also added icons to the operating state, and increase the width of the last update
+ *    to avoid wrapping.
+ * lgk version 6 add support for actually knowing the fan is on or not (added tile),
+ *    and also the actual operating state ie heating,cooling or idle via new response variables.
+ * lgk version 5, due to intermittant update failures added last update date/time tile so that you can see when it happended
+ *    not there is a new input tzoffset which defaults to my time ie -5 which you must set .
+ * lgk version 4 supports celsius and fahrenheit with option, and now colors.
+ * lgk v 3 added optional outdoor temp sensors and preferences for it, also made api login required.
+ *
 */
+
 metadata {
     definition (name: "Total Comfort API B", namespace: 
                 "Total Comfort API", author: "Eric Thomas, lg kahn, C Steele") {
@@ -80,23 +78,25 @@ metadata {
              "outdoorHumidity", "followSchedule","status"])
 
     preferences {
-        input("username", "text", title: "Username", description: "Your Total Comfort User Name", required: true)
-        input("password", "password", title: "Password", description: "Your Total Comfort password",required: true)
-        input("honeywelldevice", "text", title: "Device ID", description: "Your Device ID", required: true)
-        input ("enableOutdoorTemps", "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No")
-        input ("setPermHold", "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary")
-        input ("tempScale", "enum", title: "Fahrenheit or Celsius?", options: ["F", "C"], required: true)
-        input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
+       input name: "username", type: "text", title: "Username", description: "Your Total Comfort User Name", required: true
+       input name: "password", type: "password", title: "Password", description: "Your Total Comfort password",required: true
+       input name: "honeywelldevice", type: "text", title: "Device ID", description: "Your Device ID", required: true
+       input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
+       input name: "setPermHold", type: "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary"
+       input name: "tempScale", type: "enum", title: "Fahrenheit or Celsius?", options: ["F", "C"], required: true
+	 input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
+       input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
+       input name: "txtEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
     }
 }
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
-     state.Version = "1.1.5"
-     state.InternalName = "HoneywellThermoTCC"
-     sendEvent(name: "DriverAuthor", value: "cSteele", isStateChange: true)
-     sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
-     sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+    state.Version = "1.2"
+    state.InternalName = "HoneywellThermoTCC"
+    sendEvent(name: "DriverAuthor", value: "cSteele")
+    sendEvent(name: "DriverVersion", value: state.version)
+    sendEvent(name: "DriverStatus", value: state.Status)
 }
 
 def coolLevelUp()
@@ -151,8 +151,6 @@ def coolLevelDown()
     }
 }
 
-
-
 def heatLevelUp()
 {
     state.DisplayUnits = settings.tempScale
@@ -178,7 +176,6 @@ def heatLevelUp()
         setHeatingSetpoint(nextLevel)
     }
 }
-
 
 def heatLevelDown()
 {
@@ -262,10 +259,10 @@ def setFollowSchedule() {
     if(device.data.SetStatus==1)
     {
         logDebug "Successfully sent follow schedule.!"
-        runIn(60,"getStatus")
+//        runIn(60,"getStatus")
+        runEvery1Minutes (getStatus)
     }
 }
-
 
 def setCoolingSetpoint(double temp) {
     device.data.SystemSwitch = 'null' 
@@ -416,12 +413,6 @@ def setThermostatFanMode(mode) {
 
 }
 
-def poll() {
-    refresh()
-    runIn(60, poll) // refresh status every 60 seconds
-}
-
-
 def setStatus() {
 
     device.data.SetStatus = 0
@@ -490,9 +481,10 @@ def getStatus() {
 
     logDebug "doing request"
 
-    httpGet(params) { response ->
+	try {
+       httpGet(params) { response ->
         logDebug "Request was successful, $response.status"
-        //log.info "data = $response.data"
+        //logInfo "data = $response.data"
         logDebug "ld = $response.data.latestData"
 
         def curTemp = response.data.latestData.uiData.DispTemperature
@@ -554,7 +546,7 @@ def getStatus() {
             operatingState = "Unknown"
         }
 
-        log.trace("Set operating State to: ${operatingState}")        
+        logInfo("Set operating State to: ${operatingState}")        
 
         // set fast state
         def fanState = "Unknown"
@@ -563,7 +555,7 @@ def getStatus() {
         fanState = "On"
         else fanState = "Idle" 
 
-        log.trace("Set Fan operating State to: ${fanState}")        
+        logInfo("Set Fan operating State to: ${fanState}")        
 
         //End Operating State
 
@@ -632,7 +624,11 @@ def getStatus() {
                 sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer)
             }
         }
-    }
+      }
+      }
+	catch (e) {
+		log.warn "Something went wrong: $e"
+	}
 }
 
 
@@ -655,19 +651,24 @@ def getHumidifierStatus()
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
             'Cookie': device.data.cookiess        ],
     ]
-    httpGet(params) { response ->
+    try {
+     httpGet(params) { response ->
         logDebug "GetHumidity Request was successful, $response.status"
         logDebug "response = $response.data"
 
         //  logDebug "ld = $response.data.latestData"
         //  logDebug "humdata = $response.data.latestData.humData"
 
-        log.trace("lowerLimit: ${response.data.latestData.humData.lowerLimit}")        
-        log.trace("upperLimit: ${response.data.humData.upperLimit}")        
-        log.trace("SetPoint: ${response.data.humData.Setpoint}")        
-        log.trace("DeviceId: ${response.data.humData.DeviceId}")        
-        log.trace("IndoorHumidity: ${response.data.humData.IndoorHumidity}")        
+        logInfo("lowerLimit: ${response.data.latestData.humData.lowerLimit}")        
+        logInfo("upperLimit: ${response.data.humData.upperLimit}")        
+        logInfo("SetPoint: ${response.data.humData.Setpoint}")        
+        logInfo("DeviceId: ${response.data.humData.DeviceId}")        
+        logInfo("IndoorHumidity: ${response.data.humData.IndoorHumidity}")        
 
+    }
+    } 
+    catch (e) {
+    	log.error "Something went wrong: $e"
     }
 }
 
@@ -681,16 +682,16 @@ def doRequest(uri, args, type, success) {
 }
 
 def refresh() {
-    log.info "Executing 'refresh'"
+    logDebug "Executing 'refresh'"
     def unit = getTemperatureScale()
-    logDebug "units = $unit"
+    logDebug "pollInterval: $pollInterval, units: = $unit"
     login()
     //getHumidifierStatus()
     getStatus()
 }
 
-def login() {  
-    log.info "Executing 'login'"
+def login() {
+    logInfo "Executing 'login'"
 
     def params = [
         uri: 'https://www.mytotalconnectcomfort.com/portal',
@@ -708,7 +709,8 @@ def login() {
 
     device.data.cookiess = ''
 
-    httpPost(params) { response ->
+    try {
+      httpPost(params) { response ->
         logDebug "Request was successful, $response.status"
         logDebug response.headers
         String allCookies = ""
@@ -761,6 +763,10 @@ def login() {
         }
         logDebug "cookies: $device.data.cookiess"
     }
+     	} 
+	catch (e) {
+		log.warn "Something went wrong: $e"
+	}
 }
 
 def isLoggedIn() {
@@ -773,22 +779,31 @@ def isLoggedIn() {
     return device.data.auth.expires_in > now
 }
 
-def updated()
-{
+def poll() {
+    logInfo "in poll: $pollInterval"
+    pollInterval = pollIntervals.toInteger()
+    if (pollInterval) runIn(pollInterval, poll) 
+    refresh()
+}
+
+def updated() {
     logDebug "in updated"
+    pollInterval = pollIntervals.toInteger()
     state.DisplayUnits = settings.tempScale
     logDebug "display units now = $state.DisplayUnits"
-    if (debugOutput) runIn(1800,logsOff)
-    
+    logDebug "debug logging is: ${debugOutput == true}"
+    log.warn "description logging is: ${txtEnable == true}"
+    unschedule()
+    if (debugOutput) runIn(1800,logsOff)   
     if (setPermHold == "Permanent") { state.PermHold = 2 } else { state.PermHold = 1 }
     logDebug "PermHold now = ${state.PermHold}"
 
+    poll()
     version()
 }
 
 def installed() {
     state.DisplayUnits = settings.tempScale
-
     logDebug "display units now = $state.DisplayUnits"
 }
 
@@ -798,15 +813,16 @@ def logsOff(){
 }
 
 private logDebug(msg) {
-	if (settings?.debugOutput || settings?.debugOutput == null) {
-		log.debug "$msg"
-	}
+	if (settings?.debugOutput || settings?.debugOutput == null) log.debug "$msg"
+}
+
+private logInfo(msg) {
+	if (settings?.txtEnable || settings?.txtEnable == null) log.info "$msg"
 }
 
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def version(){
-    unschedule()
     schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
     updateCheck()
 }
@@ -833,25 +849,28 @@ def updateCheck(){
                state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
                log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
                log.warn "** $state.UpdateInfo **"
+	     }
+           else if(currentVer > newVer){
+               state.Status = "<b>You are using a Test version of this Driver (Version: $newVerRaw)</b>"
            } else { 
            	state.Status = "Current"
-           	log.info "You are using the current version of this driver"
+           	logInfo "You are using the current version of this driver"
            }
          }
        } 
 
        catch (e) {
-           log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+           log.warn "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
            }
            
        if(state.Status == "Current"){
            state.UpdateInfo = "N/A"
-           sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-           sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+           sendEvent(name: "DriverUpdate", value: state.UpdateInfo)
+           sendEvent(name: "DriverStatus", value: state.Status)
        } else {
-           sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-           sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+           sendEvent(name: "DriverUpdate", value: state.UpdateInfo)
+           sendEvent(name: "DriverStatus", value: state.Status)
        }   
- 	 sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
-    	 sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
+ 	 sendEvent(name: "DriverAuthor", value: state.author)
+    	 sendEvent(name: "DriverVersion", value: state.Version)
 }
