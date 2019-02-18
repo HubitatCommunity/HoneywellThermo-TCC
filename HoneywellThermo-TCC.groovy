@@ -14,6 +14,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ * csteele: v1.2.2   replaced F/C selection with value from Location in the hub.
  * csteele: v1.2     option of polling interval, off through 60 min. added txtEnable for Description logging.
  * csteele: v1.1.5   allow option of permanent or temporary hold.
  * csteele: v1.1     merged Pull Request from rylatorr: Use permanent hold instead of temporary
@@ -69,21 +70,12 @@ metadata {
 
     }
 
-    main "temperature"
-    details(["temperature", "thermostatMode", "thermostatFanMode",   
-             "heatLevelUp", "heatingSetpoint" , "heatLevelDown", 
-             "coolLevelUp", "coolingSetpoint", "coolLevelDown" , 
-             "thermostatOperatingState", "fanOperatingState",
-             "refresh", "relativeHumidity", "outdoorTemperature",
-             "outdoorHumidity", "followSchedule","status"])
-
     preferences {
        input name: "username", type: "text", title: "Username", description: "Your Total Comfort User Name", required: true
        input name: "password", type: "password", title: "Password", description: "Your Total Comfort password",required: true
        input name: "honeywelldevice", type: "text", title: "Device ID", description: "Your Device ID", required: true
        input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "setPermHold", type: "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary"
-       input name: "tempScale", type: "enum", title: "Fahrenheit or Celsius?", options: ["F", "C"], required: true
 	 input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
        input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
        input name: "txtEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
@@ -92,17 +84,15 @@ metadata {
 
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
-    state.Version = "1.2"
+    state.Version = "1.2.2"
     state.InternalName = "HoneywellThermoTCC"
     sendEvent(name: "DriverAuthor", value: "cSteele")
     sendEvent(name: "DriverVersion", value: state.version)
     sendEvent(name: "DriverStatus", value: state.Status)
 }
 
-def coolLevelUp()
-{
-    state.DisplayUnits = settings.tempScale
-    if (state.DisplayUnits == "F")
+def coolLevelUp() {
+    if (location.temperatureScale == "F")
     {
         int nextLevel = device.currentValue("coolingSetpoint") + 1
 
@@ -125,10 +115,8 @@ def coolLevelUp()
     }
 }
 
-def coolLevelDown()
-{
-    state.DisplayUnits = settings.tempScale
-    if (state.DisplayUnits == "F")
+def coolLevelDown() {
+    if (location.temperatureScale == "F")
     {
         int nextLevel = device.currentValue("coolingSetpoint") - 1
 
@@ -151,10 +139,8 @@ def coolLevelDown()
     }
 }
 
-def heatLevelUp()
-{
-    state.DisplayUnits = settings.tempScale
-    if (state.DisplayUnits == "F")
+def heatLevelUp() {
+    if (location.temperatureScale == "F")
     {
         logDebug "in fahrenheit level up"
         int nextLevel = device.currentValue("heatingSetpoint") + 1
@@ -177,10 +163,8 @@ def heatLevelUp()
     }
 }
 
-def heatLevelDown()
-{
-    state.DisplayUnits = settings.tempScale
-    if (state.DisplayUnits == "F")
+def heatLevelDown() {
+    if (location.temperatureScale == "F")
     {
         logDebug "in fahrenheit level down"
         int nextLevel = device.currentValue("heatingSetpoint") - 1
@@ -259,8 +243,8 @@ def setFollowSchedule() {
     if(device.data.SetStatus==1)
     {
         logDebug "Successfully sent follow schedule.!"
-//        runIn(60,"getStatus")
-        runEvery1Minutes (getStatus)
+//        runIn(60,getStatus)
+//        runEvery1Minutes (getStatus)
     }
 }
 
@@ -441,7 +425,7 @@ def setStatus() {
         body: [ DeviceID: "${settings.honeywelldevice}", SystemSwitch : device.data.SystemSwitch ,HeatSetpoint : 
                device.data.HeatSetpoint, CoolSetpoint: device.data.CoolSetpoint, HeatNextPeriod: 
                device.data.HeatNextPeriod,CoolNextPeriod:device.data.CoolNextPeriod,StatusHeat:device.data.StatusHeat,
-               StatusCool:device.data.StatusCool,FanMode:device.data.FanMode,ThermostatUnits: settings.tempScale]
+               StatusCool:device.data.StatusCool,FanMode:device.data.FanMode,ThermostatUnits: location.temperatureScale]
 
     ]
 
@@ -683,7 +667,7 @@ def doRequest(uri, args, type, success) {
 
 def refresh() {
     logDebug "Executing 'refresh'"
-    def unit = getTemperatureScale()
+    def unit = location.temperatureScale
     logDebug "pollInterval: $pollInterval, units: = $unit"
     login()
     //getHumidifierStatus()
@@ -789,7 +773,7 @@ def poll() {
 def updated() {
     logDebug "in updated"
     pollInterval = pollIntervals.toInteger()
-    state.DisplayUnits = settings.tempScale
+    state.DisplayUnits = location.temperatureScale
     logDebug "display units now = $state.DisplayUnits"
     logDebug "debug logging is: ${debugOutput == true}"
     log.warn "description logging is: ${txtEnable == true}"
@@ -803,7 +787,7 @@ def updated() {
 }
 
 def installed() {
-    state.DisplayUnits = settings.tempScale
+    state.DisplayUnits = location.temperatureScale
     logDebug "display units now = $state.DisplayUnits"
 }
 
