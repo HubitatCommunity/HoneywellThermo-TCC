@@ -14,6 +14,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ * csteele: v1.2.3   communications with TCC changed and now Mode and Fan need to be numbers
+ *                    Operating State reflects the ENUM values ("Unknown" isn't acceptable)
  * csteele: v1.2.2   replaced F/C selection with value from Location in the hub.
  * csteele: v1.2     option of polling interval, off through 60 min. added txtEnable for Description logging.
  * csteele: v1.1.5   allow option of permanent or temporary hold.
@@ -85,7 +87,7 @@ metadata {
 // Driver Version   ***** with great thanks and acknowlegment to Cobra (CobraVmax) for his original version checking code ********
 def setVersion(){
     state.Version = "1.2.3"
-    state.InternalName = "HoneywellThermoTCC"
+    state.InternalName = "HoneywellThermoTCC_C"
     sendEvent(name: "DriverAuthor", value: "cSteele")
     sendEvent(name: "DriverVersion", value: state.version)
     sendEvent(name: "DriverStatus", value: state.Status)
@@ -401,16 +403,16 @@ def setThermostatFanMode(mode) {
 
 def setStatus() {
 
-	device.data.SetStatus = 0
-	
-	login()
-	logDebug "Executing 'setStatus'"
-	def today= new Date()
-	logDebug "https://www.mytotalconnectcomfort.com/portal/Device/SubmitControlScreenChanges"
-	logDebug "setting heat setpoint to $device.data.HeatSetpoint"
-	logDebug "setting cool setpoint to $device.data.CoolSetpoint"
+    device.data.SetStatus = 0
 
-	def params = [
+    login()
+    logDebug "Executing 'setStatus'"
+    def today = new Date()
+    logDebug "https://www.mytotalconnectcomfort.com/portal/Device/SubmitControlScreenChanges"
+    logDebug "setting heat setpoint to $device.data.HeatSetpoint"
+    logDebug "setting cool setpoint to $device.data.CoolSetpoint"
+
+    def params = [
         uri: "https://www.mytotalconnectcomfort.com/portal/Device/SubmitControlScreenChanges",
         headers: [
             'Accept': 'application/json, text/javascript, */*; q=0.01', // */ comment
@@ -423,38 +425,40 @@ def setStatus() {
             'Referer': "https://www.mytotalconnectcomfort.com/portal/Device/Control/${settings.honeywelldevice}",
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
-            'Cookie': device.data.cookiess        ],
-        body: 
-		[ 
-		DeviceID: "${settings.honeywelldevice}", 
-		SystemSwitch : device.data.SystemSwitch,
-		HeatSetpoint : device.data.HeatSetpoint, 
-		CoolSetpoint: device.data.CoolSetpoint, 
-		HeatNextPeriod: device.data.HeatNextPeriod,
-		CoolNextPeriod:device.data.CoolNextPeriod,
-		StatusHeat:device.data.StatusHeat,
-		StatusCool:device.data.StatusCool,
-		fanMode:device.data.FanMode,
-		DisplayUnits: location.temperatureScale
-            ]
+            'Cookie': device.data.cookiess
+        ],
+        body: [
+            DeviceID: "${settings.honeywelldevice}",
+            SystemSwitch: device.data.SystemSwitch,
+            HeatSetpoint: device.data.HeatSetpoint,
+            CoolSetpoint: device.data.CoolSetpoint,
+            HeatNextPeriod: device.data.HeatNextPeriod,
+            CoolNextPeriod: device.data.CoolNextPeriod,
+            StatusHeat: device.data.StatusHeat,
+            StatusCool: device.data.StatusCool,
+            fanMode: device.data.FanMode,
+            DisplayUnits: location.temperatureScale
+        ]
 
-	]
+    ]
 
-	logDebug "params = $params"
-	httpPost(params) { response ->
-		def setStatusResult = response.data
-		logDebug "Request was successful, $response.status"
-	}
+    logDebug "params = $params"
+    httpPost(params) {
+        response - >
+            def setStatusResult = response.data
+        logDebug "Request was successful, $response.status"
+    }
 
-	logDebug "SetStatus is 1 now"
-	device.data.SetStatus = 1
+    logDebug "SetStatus is 1 now"
+    device.data.SetStatus = 1
 
 }
+
 
 def getStatus() {
     logDebug "Executing getStatus"
     logDebug "enable outside temps = $enableOutdoorTemps"
-    def today= new Date()
+    def today = new Date()
     logDebug "https://www.mytotalconnectcomfort.com/portal/Device/CheckDataSession/${settings.honeywelldevice}?_=$today.time"
 
     def params = [
@@ -462,7 +466,7 @@ def getStatus() {
         headers: [
             'Accept': '*/*',
             'DNT': '1',
-            'Cache' : 'false',
+            'Cache': 'false',
             'dataType': 'json',
             'Accept-Encoding': 'plain',
             'Cache-Control': 'max-age=0',
@@ -471,161 +475,136 @@ def getStatus() {
             'Referer': 'https://www.mytotalconnectcomfort.com/portal',
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
-            'Cookie': device.data.cookiess        ],
+            'Cookie': device.data.cookiess
+        ],
     ]
 
     logDebug "sending getStatus request"
 
-	try {
-       httpGet(params) { response ->
-        logDebug "Request was successful, $response.status"
-        //logInfo "data = $response.data"
-        logDebug "ld = $response.data.latestData"
+    try {
+        httpGet(params) {
+            response - >
+                logDebug "Request was successful, $response.status"
+            //logInfo "data = $response.data"
+            logDebug "ld = $response.data.latestData"
 
-        def curTemp = response.data.latestData.uiData.DispTemperature
-        def fanMode = response.data.latestData.fanData.fanMode
-        def switchPos = response.data.latestData.uiData.SystemSwitchPosition
-        def coolSetPoint = response.data.latestData.uiData.CoolSetpoint
-        def heatSetPoint = response.data.latestData.uiData.HeatSetpoint
-        def statusCool = response.data.latestData.uiData.StatusCool
-        def statusHeat = response.data.latestData.uiData.StatusHeat
-        def curHumidity = response.data.latestData.uiData.IndoorHumidity
-        def Boolean hasOutdoorHumid = response.data.latestData.uiData.OutdoorHumidityAvailable
-        def Boolean hasOutdoorTemp = response.data.latestData.uiData.OutdoorTemperatureAvailable
-        def curOutdoorHumidity = response.data.latestData.uiData.OutdoorHumidity
-        def curOutdoorTemp = response.data.latestData.uiData.OutdoorTemperature
-        def displayUnits = response.data.latestData.uiData.DisplayUnits
-        def fanIsRunning = response.data.latestData.fanData.fanIsRunning
-        def equipmentStatus = response.data.latestData.uiData.EquipmentOutputStatus
+            def curTemp = response.data.latestData.uiData.DispTemperature
+            def fanMode = response.data.latestData.fanData.fanMode
+            def switchPos = response.data.latestData.uiData.SystemSwitchPosition
+            def coolSetPoint = response.data.latestData.uiData.CoolSetpoint
+            def heatSetPoint = response.data.latestData.uiData.HeatSetpoint
+            def statusCool = response.data.latestData.uiData.StatusCool
+            def statusHeat = response.data.latestData.uiData.StatusHeat
+            def curHumidity = response.data.latestData.uiData.IndoorHumidity
+            def Boolean hasOutdoorHumid = response.data.latestData.uiData.OutdoorHumidityAvailable
+            def Boolean hasOutdoorTemp = response.data.latestData.uiData.OutdoorTemperatureAvailable
+            def curOutdoorHumidity = response.data.latestData.uiData.OutdoorHumidity
+            def curOutdoorTemp = response.data.latestData.uiData.OutdoorTemperature
+            def displayUnits = response.data.latestData.uiData.DisplayUnits
+            def fanIsRunning = response.data.latestData.fanData.fanIsRunning
+            def equipmentStatus = response.data.latestData.uiData.EquipmentOutputStatus
 
-        def holdTime = response.data.latestData.uiData.TemporaryHoldUntilTime
-        def vacationHold = response.data.latestData.uiData.IsInVacationHoldMode
+            def holdTime = response.data.latestData.uiData.TemporaryHoldUntilTime
+            def vacationHold = response.data.latestData.uiData.IsInVacationHoldMode
 
-        logDebug "got holdTime = $holdTime"
-        logDebug "got Vacation Hold = $vacationHold"
+            logDebug "got holdTime = $holdTime"
+            logDebug "got Vacation Hold = $vacationHold"
 
-        if (holdTime != 0) 
-        {  logDebug "sending temporary hold"
-         sendEvent(name: 'followSchedule', value: "TemporaryHold")
-        }
-
-        if (vacationHold == true)
-        { logDebug "sending vacation hold"
-         sendEvent(name: 'followSchedule', value: "VacationHold")
-        }
-
-        if (vacationHold == false && holdTime == 0)
-        {
-            logDebug "Sending following schedule"
-            sendEvent(name: 'followSchedule', value: "FollowingSchedule")
-        }
-        //  logDebug "displayUnits = $displayUnits"
-        state.DisplayUnits = $displayUnits
-
-        //Operating State Section 
-        //Set the operating state to off 
-
-        def operatingState = "Unknown"
-
-        // lgk operating state not working here.. shows both on ie 1 when heat doesnt go on to 67 and heat till 76  and current is 73 
-        //Check the status of heat and cool 
-
-        // lgk old method now use equipment status
-        if (EquipmentOutputStatus == 1) {
-            operatingState = "Heating"
-        } else if (EquipmentOutputStatus == 2) {
-            operatingState = "Cooling"
-        } else if (EquipmentOutputStatus == 0) {
-            operatingState = "Idle"
-        } else {
-            operatingState = "Unknown"
-        }
-
-        logInfo("Set operating State to: ${operatingState}")        
-
-        // set fast state
-        def fanState = "Unknown"
-
-        if (fanIsRunning == true)
-        fanState = "On"
-        else fanState = "Idle" 
-
-        logInfo("Set Fan operating State to: ${fanState}")        
-
-        //End Operating State
-
-        // logDebug ("curTemp:   ${curTemp}") 
-        // logDebug ("fanMode:   ${fanMode}") 
-        // logDebug ("switchPos: ${switchPos}") 
-
-        //fan mode 0=auto, 2=circ, 1=on
-
-        if(fanMode==0)
-        fanMode = 'auto'
-        if(fanMode==1)
-        fanMode = 'on'
-        if(fanMode==2)
-        fanMode = 'circulate'
-
-        if(switchPos==1)
-        switchPos = 'heat'
-        if(switchPos==2)
-        switchPos = 'off'
-        if(switchPos==3)
-        switchPos = 'cool'
-        if(switchPos==4 || switchPos==5)
-        switchPos = 'auto'
-
- //       def formattedCoolSetPoint = String.format("%5.1f", coolSetPoint)
- //       def formattedHeatSetPoint = String.format("%5.1f", heatSetPoint)
- //       def formattedTemp = String.format("%5.1f", curTemp)
-//
- //       def finalCoolSetPoint = formattedCoolSetPoint as BigDecimal
- //       def finalHeatSetPoint = formattedHeatSetPoint as BigDecimal
- //       def finalTemp = formattedTemp as BigDecimal
-
-        //Send events 
-        sendEvent(name: 'thermostatOperatingState', value: operatingState)
-        sendEvent(name: 'fanOperatingState', value: fanState)
-        sendEvent(name: 'thermostatFanMode', value: fanMode)
-        sendEvent(name: 'thermostatMode', value: switchPos)
-        sendEvent(name: 'coolingSetpoint', value: coolSetPoint )
-        sendEvent(name: 'heatingSetpoint', value: heatSetPoint )
-        sendEvent(name: 'temperature', value: curTemp, state: switchPos)
-        sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
-
-
-        //logDebug "location = $location.name tz = $location.timeZone"
-        def now = new Date().format('MM/dd/yyyy h:mm a',location.timeZone)
-
-        //def now = new Date()
-        //def tf = new java.text.SimpleDateFormat("MM/dd/yyyy h:mm a")
-        //tf.setTimeZone(TimeZone.getTimeZone("GMT${settings.tzOffset}"))
-        //def newtime = "${tf.format(now)}" as String   
-        // sendEvent(name: "lastUpdate", value: newtime, descriptionText: "Last Update: $newtime")
-        sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
-
-
-        if (enableOutdoorTemps == "Yes")
-        {
-
-            if (hasOutdoorHumid)
-            {
-                sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer)
+            if (holdTime != 0) {
+                logDebug "sending temporary hold"
+                sendEvent(name: 'followSchedule', value: "TemporaryHold")
             }
 
-            if (hasOutdoorTemp)
-            {
-                sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer)
+            if (vacationHold == true) {
+                logDebug "sending vacation hold"
+                sendEvent(name: 'followSchedule', value: "VacationHold")
+            }
+
+            if (vacationHold == false && holdTime == 0) {
+                logDebug "Sending following schedule"
+                sendEvent(name: 'followSchedule', value: "FollowingSchedule")
+            }
+            //  logDebug "displayUnits = $displayUnits"
+            state.DisplayUnits = $displayUnits
+
+            //Operating State Section 
+            //Set the operating state to off 
+            // thermostatOperatingState - ENUM ["heating", "pending cool", "pending heat", "vent economizer", "idle", "cooling", "fan only"]
+            def operatingState = "Unknown"
+
+
+            // set fan and operating state
+            def fanState = "Unknown"
+
+            if (fanIsRunning == true) {
+                fanState = "On";
+                if (mode == "heat") {
+                    operatingState = "heating"
+                } else {
+                    operatingState = "cooling"
+                }
+            } else {
+                fanState = "Idle";
+                operatingState = "Idle"
+            }
+
+            logInfo("Set Operating State to: ${operatingState}")
+
+            //fan mode 0=auto, 2=circ, 1=on
+
+            if (fanMode == 0)
+                fanMode = 'auto'
+            if (fanMode == 1)
+                fanMode = 'on'
+            if (fanMode == 2)
+                fanMode = 'circulate'
+
+            if (switchPos == 1)
+                switchPos = 'heat'
+            if (switchPos == 2)
+                switchPos = 'off'
+            if (switchPos == 3)
+                switchPos = 'cool'
+            if (switchPos == 4 || switchPos == 5)
+                switchPos = 'auto'
+
+            //Send events 
+            sendEvent(name: 'thermostatOperatingState', value: operatingState)
+            sendEvent(name: 'fanOperatingState', value: fanState)
+            sendEvent(name: 'thermostatFanMode', value: fanMode)
+            sendEvent(name: 'thermostatMode', value: switchPos)
+            sendEvent(name: 'coolingSetpoint', value: coolSetPoint)
+            sendEvent(name: 'heatingSetpoint', value: heatSetPoint)
+            sendEvent(name: 'temperature', value: curTemp, state: switchPos)
+            sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
+
+
+            //logDebug "location = $location.name tz = $location.timeZone"
+            def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
+
+            //def now = new Date()
+            //def tf = new java.text.SimpleDateFormat("MM/dd/yyyy h:mm a")
+            //tf.setTimeZone(TimeZone.getTimeZone("GMT${settings.tzOffset}"))
+            //def newtime = "${tf.format(now)}" as String   
+            // sendEvent(name: "lastUpdate", value: newtime, descriptionText: "Last Update: $newtime")
+            sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+
+
+            if (enableOutdoorTemps == "Yes") {
+
+                if (hasOutdoorHumid) {
+                    sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer)
+                }
+
+                if (hasOutdoorTemp) {
+                    sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer)
+                }
             }
         }
-      }
-      }
-	catch (e) {
-		log.warn "Something went wrong: $e"
-	}
+    } catch (e) {
+        log.warn "Something went wrong: $e"
+    }
 }
-
 
 def getHumidifierStatus()
 {
@@ -707,7 +686,7 @@ def login() {
     try {
       httpPost(params) { response ->
         logDebug "Request was successful, $response.status"
-        logDebug response.headers
+        //logDebug response.headers
         String allCookies = ""
 
         //response.getHeaders('Set-Cookie').each {
@@ -762,6 +741,83 @@ def login() {
 	catch (e) {
 		log.warn "Something went wrong during login: $e"
 	}
+}
+def login() {
+    logInfo "Executing 'login'"
+
+    def params = [
+        uri: 'https://www.mytotalconnectcomfort.com/portal',
+        headers: [
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json, text/javascript, */*; q=0.01', // */
+            'Accept-Encoding': 'sdch',
+            'Host': 'www.mytotalconnectcomfort.com',
+            'DNT': '1',
+            'Origin': 'www.mytotalconnectcomfort.com/portal/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36'
+        ],
+        body: [timeOffset: '240', UserName: "${settings.username}", Password: "${settings.password}", RememberMe: 'false']
+    ]
+
+    device.data.cookiess = ''
+
+    try {
+        httpPost(params) {
+            response - >
+                logDebug "Request was successful, $response.status"
+            //logDebug response.headers
+            String allCookies = ""
+
+            //response.getHeaders('Set-Cookie').each {
+            //              logDebug "---Set-Cookie: ${it.value}"
+            //      }
+
+            response.getHeaders('Set-Cookie').each {
+                String cookie = it.value.split(';|,')[0]
+                Boolean skipCookie = false
+                def expireParts = it.value.split('expires=')
+
+                try {
+                    def cookieSegments = it.value.split(';')
+                    for (int i = 0; i < cookieSegments.length; i++) {
+                        def cookieSegment = cookieSegments[i]
+                        String cookieSegmentName = cookieSegment.split('=')[0]
+
+                        if (cookieSegmentName.trim() == "expires") {
+                            String expiration = cookieSegment.split('=')[1]
+
+                            Date expires = new Date(expiration)
+                            Date newDate = new Date() // right now
+
+                            if (expires < newDate) {
+                                skipCookie = true
+                                //logDebug "-skip cookie: $it.value"
+                            } else {
+                                //logDebug "+not skipping cookie: expires=$expires. now=$newDate. cookie: $it.value"
+                            }
+
+                        }
+                    }
+                } catch (e) {
+                    logDebug "!error when checking expiration date: $e ($expiration) [$expireParts.length] {$it.value}"
+                }
+
+                allCookies = allCookies + it.value + ';'
+
+                if (cookie != ".ASPXAUTH_TH_A=") {
+                    if (it.value.split('=')[1].trim() != "") {
+                        if (!skipCookie) {
+                            logDebug "Adding cookie to collection" //: $cookie"
+                            device.data.cookiess = device.data.cookiess + cookie + ';'
+                        }
+                    }
+                }
+            }
+            //       logDebug "cookies: $device.data.cookiess"
+        }
+    } catch (e) {
+        log.warn "Something went wrong during login: $e"
+    }
 }
 
 def isLoggedIn() {
