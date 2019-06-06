@@ -7,6 +7,7 @@
                 },
                 "Driver": {
                         "HoneywellThermoTCC": "1.2.2"
+                        "HoneywellThermoTCC_C": "1.2.3"
                 },
 
                 "UpdateInfo": {
@@ -14,6 +15,7 @@
                         },
                         "Driver": {
                         "HoneywellThermoTCC": "Updated 02/18/2019"
+                        "HoneywellThermoTCC_C": "Updated 06/05/2019"
                         }
                 }
         }
