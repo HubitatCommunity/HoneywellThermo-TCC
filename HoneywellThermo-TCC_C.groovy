@@ -193,12 +193,17 @@ def parse(String description) {
 
 }
 
-
 // handle commands
 def setHeatingSetpoint(Double temp)
 {
-	deviceDataInit(state.PermHold)
-	device.data.HeatSetpoint = temp
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = temp
+    device.data.CoolSetpoint = null
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 
     if(device.data.SetStatus==1)
@@ -209,8 +214,14 @@ def setHeatingSetpoint(Double temp)
 }
 
 def setHeatingSetpoint(temp) {
-	deviceDataInit(state.PermHold)
-	device.data.HeatSetpoint = temp
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = temp
+    device.data.CoolSetpoint = null
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 
     if(device.data.SetStatus==1)
@@ -221,8 +232,14 @@ def setHeatingSetpoint(temp) {
 
 def setFollowSchedule() {
     logDebug "in set follow schedule"
-	deviceDataInit('0')
-	device.data.HeatSetpoint = temp
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = null
+    device.data.CoolSetpoint = null
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat='0'
+    device.data.StatusCool='0'
+    device.data.FanMode = null
     setStatus()
 
     if(device.data.SetStatus==1)
@@ -234,8 +251,14 @@ def setFollowSchedule() {
 }
 
 def setCoolingSetpoint(double temp) {
-	deviceDataInit(state.PermHold)
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = null
     device.data.CoolSetpoint = temp
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 
     if(device.data.SetStatus==1)
@@ -246,8 +269,14 @@ def setCoolingSetpoint(double temp) {
 }
 
 def setCoolingSetpoint(temp) {
-	deviceDataInit(state.PermHold)
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = null
     device.data.CoolSetpoint = temp
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 
     if(device.data.SetStatus==1)
@@ -257,16 +286,26 @@ def setCoolingSetpoint(temp) {
 }
 
 def setTargetTemp(temp) {
-	deviceDataInit(state.PermHold)
+    device.data.SystemSwitch = null 
     device.data.HeatSetpoint = temp
     device.data.CoolSetpoint = temp
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 }
 
 def setTargetTemp(double temp) {
-	deviceDataInit(state.PermHold)
+    device.data.SystemSwitch = null 
     device.data.HeatSetpoint = temp
     device.data.CoolSetpoint = temp
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat = state.PermHold
+    device.data.StatusCool = state.PermHold
+    device.data.FanMode = null
     setStatus()
 }
 
@@ -292,26 +331,33 @@ def cool() {
 
 def setThermostatMode(mode) {
 	logDebug "setThermostatMode: $mode"
-	deviceDataInit(null)
+    device.data.HeatSetpoint = null
+    device.data.CoolSetpoint = null
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat=null
+    device.data.StatusCool=null
+    device.data.FanMode = null
 
-	def switchPos = null
-	if(mode=='heat')
-	switchPos = 1;
-	if(mode=='off')
-	switchPos = 2
-	if(mode=='cool')
-	switchPos = 3;
-	/* lgk modified my therm has pos 5 for auto vision pro */
-	if(mode=='auto' || switchPos == 5)
-	switchPos = 4
-	
-	device.data.SystemSwitch = switchPos 
-	setStatus()
-	
-	if(device.data.SetStatus==1)
-	{
-	    sendEvent(name: 'thermostatMode', value: mode)
-	}
+
+    def switchPos = null
+    if(mode=='heat')
+    switchPos = 1;
+    if(mode=='off')
+    switchPos = 2
+    if(mode=='cool')
+    switchPos = 3;
+    /* lgk modified my therm has pos 5 for auto vision pro */
+    if(mode=='auto' || switchPos == 5)
+    switchPos = 4
+
+    device.data.SystemSwitch = switchPos 
+    setStatus()
+
+    if(device.data.SetStatus==1)
+    {
+        sendEvent(name: 'thermostatMode', value: mode)
+    }
 }
 
 def fanOn() {
@@ -328,23 +374,31 @@ def fanCirculate() {
 
 def setThermostatFanMode(mode) {    
 	logDebug "setThermostatFanMode: $mode"
-	deviceDataInit(null) 
-	def fanMode = null
-	
-	if(mode=='auto')
-	fanMode = 0
-	if(mode=='on')
-	fanMode = 1
-	if(mode=='circulate')
-	fanMode = 2
-	
-	device.data.FanMode = fanMode
-	setStatus()
-	
-	if(device.data.SetStatus==1)
-	{
-	    sendEvent(name: 'thermostatFanMode', value: mode)    
-	}
+    device.data.SystemSwitch = null 
+    device.data.HeatSetpoint = null
+    device.data.CoolSetpoint = null
+    device.data.HeatNextPeriod = null
+    device.data.CoolNextPeriod = null
+    device.data.StatusHeat=null
+    device.data.StatusCool=null
+ 
+    def fanMode = null
+
+    if(mode=='auto')
+    fanMode = 0
+    if(mode=='on')
+    fanMode = 1
+    if(mode=='circulate')
+    fanMode = 2
+
+    device.data.FanMode = fanMode
+    setStatus()
+
+    if(device.data.SetStatus==1)
+    {
+        sendEvent(name: 'thermostatFanMode', value: mode)    
+    }
+
 }
 
 def setStatus() {
@@ -352,9 +406,11 @@ def setStatus() {
     device.data.SetStatus = 0
 
     login()
-    logDebug "Executing 'setStatus', $device.data.CoolNextPeriod"
+    logDebug "Executing 'setStatus'"
     def today = new Date()
     logDebug "https://www.mytotalconnectcomfort.com/portal/Device/SubmitControlScreenChanges"
+    logDebug "setting heat setpoint to $device.data.HeatSetpoint"
+    logDebug "setting cool setpoint to $device.data.CoolSetpoint"
 
     def params = [
         uri: "https://www.mytotalconnectcomfort.com/portal/Device/SubmitControlScreenChanges",
@@ -387,17 +443,12 @@ def setStatus() {
     ]
 
     logDebug "params = $params"
-    asyncHttpPost(params) 
-}    
-
-
-def setStatusHandler(resp, data) {
-//        resp ->
+    httpPost(params) {
+        response ->
             def setStatusResult = response.data
         logDebug "Request was successful, $response.status"
- //   }
+    }
 
-    logDebug "SetStatus is 1 now"
     device.data.SetStatus = 1
 
 }
@@ -527,8 +578,14 @@ def getStatus() {
             sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
 
 
+            //logDebug "location = $location.name tz = $location.timeZone"
             def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
 
+            //def now = new Date()
+            //def tf = new java.text.SimpleDateFormat("MM/dd/yyyy h:mm a")
+            //tf.setTimeZone(TimeZone.getTimeZone("GMT${settings.tzOffset}"))
+            //def newtime = "${tf.format(now)}" as String   
+            // sendEvent(name: "lastUpdate", value: newtime, descriptionText: "Last Update: $newtime")
             sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 
 
@@ -592,19 +649,6 @@ def api(method, args = [], success = {}) {
 
 }
 
-// initialize the device values. Each method overwrites it's specific value
-def deviceDataInit(val) {
-    device.data.SystemSwitch = null 
-    device.data.HeatSetpoint = null
-    device.data.CoolSetpoint = null
-    device.data.HeatNextPeriod = null
-    device.data.CoolNextPeriod = null
-    device.data.FanMode = null
-    device.data.StatusHeat=val
-    device.data.StatusCool=val
-}
-
-
 // Need to be logged in before this is called. So don't call this. Call api.
 def doRequest(uri, args, type, success) {
 
@@ -618,6 +662,7 @@ def refresh() {
     //getHumidifierStatus()
     getStatus()
 }
+
 
 def login() {
     logInfo "Executing 'login'"
@@ -710,7 +755,7 @@ def now = new Date().getTime();
 def poll() {
     pollInterval = pollIntervals.toInteger()
     if (pollInterval) runIn(pollInterval, poll) 
-    logInfo "in poll: (every $pollInterval seconds)"
+    logInfo "in poll: $pollInterval"
     refresh()
 }
 
@@ -757,7 +802,7 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	 def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/versions.json" ]  
+	 def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/versions.json" ]  // This is the URI & path to your hosted JSON file
        try {
            httpGet(paramsUD) { respUD ->
 //           log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
