@@ -13,7 +13,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *
+ *          v1.3.4   Added unit "°F" or "°C" to sendEvent for coolingSetpoint, heatingSetpoint, and temperature
+ * csteele: v1.3.3
  * csteele: v1.3.2   centralized Honeywell site url as "tccSite"
  * csteele: v1.3.1   updated to v2 of updateCheck
  * csteele: v1.3.0   converted to asynchttp where posssible.
@@ -196,10 +197,11 @@ def setHeatingSetpoint(Double temp)
 	deviceDataInit(state.PermHold)
 	device.data.HeatSetpoint = temp
 	setStatus()
-
+    def unit = "°${location.temperatureScale}"
+	
 	if(device.data.SetStatus==1)
 	{
-      	sendEvent(name: 'heatingSetpoint', value: temp as double)
+      	sendEvent(name: 'heatingSetpoint', value: temp as double, unit: unit)
 	}	
 }
 
@@ -207,10 +209,11 @@ def setHeatingSetpoint(temp) {
 	deviceDataInit(state.PermHold)
 	device.data.HeatSetpoint = temp
 	setStatus()
+    def unit = "°${location.temperatureScale}"
 	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'heatingSetpoint', value: temp as Integer)
+	    sendEvent(name: 'heatingSetpoint', value: temp as Integer, unit:unit)
 	}
 }
 
@@ -232,10 +235,11 @@ def setCoolingSetpoint(double temp) {
 	deviceDataInit(state.PermHold)
 	device.data.CoolSetpoint = temp
 	setStatus()
-
+    def unit = "°${location.temperatureScale}"
+	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'coolingSetpoint', value: temp as double)
+	    sendEvent(name: 'coolingSetpoint', value: temp as double, unit:unit)
 	}
 }
 
@@ -243,10 +247,11 @@ def setCoolingSetpoint(temp) {
 	deviceDataInit(state.PermHold)
 	device.data.CoolSetpoint = temp
 	setStatus()
-
+    def unit = "°${location.temperatureScale}"
+	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'coolingSetpoint', value: temp as Integer)
+	    sendEvent(name: 'coolingSetpoint', value: temp as Integer, unit:unit)
 	}
 }
 
@@ -512,22 +517,24 @@ def getStatusHandler(resp, data) {
 				sendEvent(name: 'thermostatFanMode', value: 'circulate');
 				break;
 		}
+		
+		def unit = "°${location.temperatureScale}"
 	
 		switch(switchPos) {
 			case 1:
-				sendEvent(name: 'temperature', value: curTemp, state: 'on');
+				sendEvent(name: 'temperature', value: curTemp, state: 'on', unit:unit);
 				sendEvent(name: 'thermostatMode', value: curTemp, state: 'on');
 				break;
 			case 2:
-				sendEvent(name: 'temperature', value: curTemp, state: 'off');
+				sendEvent(name: 'temperature', value: curTemp, state: 'off', unit:unit);
 				sendEvent(name: 'thermostatMode', value: curTemp, state: 'off');
 				break;
 			case 3:
-				sendEvent(name: 'temperature', value: curTemp, state: 'cool');
+				sendEvent(name: 'temperature', value: curTemp, state: 'cool', unit:unit);
 				sendEvent(name: 'thermostatMode', value: curTemp, state: 'cool');
 				break;
 			default:
-				sendEvent(name: 'temperature', value: curTemp, state: 'auto');
+				sendEvent(name: 'temperature', value: curTemp, state: 'auto', unit:unit);
 				sendEvent(name: 'thermostatMode', value: curTemp, state: 'auto');
 				break;
 		}
@@ -537,12 +544,13 @@ def getStatusHandler(resp, data) {
 		sendEvent(name: 'fanOperatingState', value: fanState)
 //		sendEvent(name: 'thermostatFanMode', value: fanMode)
 //		sendEvent(name: 'thermostatMode', value: switchPos)
-		sendEvent(name: 'coolingSetpoint', value: coolSetPoint)
-		sendEvent(name: 'heatingSetpoint', value: heatSetPoint)
-//		sendEvent(name: 'temperature', value: curTemp, state: switchPos)
+		sendEvent(name: 'coolingSetpoint', value: coolSetPoint, unit:unit)
+		sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:unit)
+//		sendEvent(name: 'temperature', value: curTemp, state: switchPos, unit:unit)
 		sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
 		
 		def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
+		def unit = "°${location.temperatureScale}"
 		
 		sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 		
@@ -553,7 +561,7 @@ def getStatusHandler(resp, data) {
 		    }
 		
 		    if (hasOutdoorTemp) {
-		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer)
+		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:unit)
 		    }
 		}
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
