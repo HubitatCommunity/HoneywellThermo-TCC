@@ -1,0 +1,20 @@
+{
+  "packageName": "HoneywellThermo-TCC",
+  "author": "csteele",
+  "version": "1.3.3",
+  "minimumHEVersion": "1.3.3",
+  "dateReleased": "2020-09-07",
+  "category": "Control",
+  "tags": "Temperature & Humidity",
+  "drivers": [
+    {
+      "id": "0982a2be-81b4-43b1-88ed-350fa8ce62c9",
+      "name": "Total Comfort API C",
+      "namespace": "csteele",
+      "location": "https://raw.githubusercontent.com/HubitatCommunity/HoneywellThermo-TCC/master/HoneywellThermo-TCC_C.groovy",
+      "required": false,
+      "oauth": false,
+      "description": "Integrate Honeywell's Total Comfort Control for your WiFi Thermostat."
+    }
+  ]
+}
