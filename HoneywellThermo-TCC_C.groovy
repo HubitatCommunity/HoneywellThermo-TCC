@@ -71,7 +71,7 @@ metadata {
         attribute  "followSchedule",     "string"
         attribute  "DriverStatus",       "string"
         attribute  "DriverUpdate",       "string"
-        attribute  "ThermostatOperatingState", "string"
+        attribute  "thermostatOperatingState", "string"
 
 //	  command "updateCheck"			// **---** delete for Release
     }
@@ -496,15 +496,15 @@ def getStatusHandler(resp, data) {
 		def fanState = "Unknown"
 		
 		if (fanIsRunning == true) {
-		    fanState = "On";
+		    fanState = "on";
 		    if (mode == "heat") {
 		        operatingState = "heating"
 		    } else {
 		        operatingState = "cooling"
 		    }
 		} else {
-		    fanState = "Idle";
-		    operatingState = "Idle"
+		    fanState = "idle";
+		    operatingState = "idle"
 		}
 		
 		logInfo("Set Operating State to: ${operatingState}")
