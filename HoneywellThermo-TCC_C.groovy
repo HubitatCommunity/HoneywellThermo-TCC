@@ -58,9 +58,9 @@ metadata {
         capability "Polling"
         capability "Thermostat"
         capability "Refresh"
-        capability "Temperature Measurement"
+        capability "TemperatureMeasurement"
         capability "Sensor"
-        capability "Relative Humidity Measurement"    
+        capability "RelativeHumidityMeasurement"    
         command    "heatLevelUp"
         command    "heatLevelDown"
         command    "coolLevelUp"
@@ -546,7 +546,7 @@ def getStatusHandler(resp, data) {
 		sendEvent(name: 'coolingSetpoint', value: coolSetPoint, unit:device.data.unit)
 		sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:device.data.unit)
 //		sendEvent(name: 'temperature', value: curTemp, state: switchPos, unit:device.data.unit)
-		sendEvent(name: 'relativeHumidity', value: curHumidity as Integer, unit:"%")
+		sendEvent(name: 'humidity', value: curHumidity as Integer, unit:"%")
 		
 		def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
 		
