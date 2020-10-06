@@ -13,10 +13,12 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *
+ *          v1.3.6   added range checking for changes to heating and cooling setpoints.
+ * csteele: v1.3.5   added "%" to humidity and centralized temp scale
+ *        : v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
  * csteele: v1.3.2   centralized Honeywell site url as "tccSite"
  * csteele: v1.3.1   updated to v2 of updateCheck
- * csteele: v1.3.0   converted to asynchttp where posssible.
+ * csteele: v1.3.0   converted to asynchttp where possible.
  * csteele: v1.2.3   communications with TCC changed and now Mode and Fan need to be numbers
  *                    Operating State reflects the ENUM values ("Unknown" isn't acceptable)
  * csteele: v1.2.2   replaced F/C selection with value from Location in the hub.
@@ -49,7 +51,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.3"  }
+ public static String version()     {  return "v1.3.5"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -71,7 +73,6 @@ metadata {
         attribute  "followSchedule",     "string"
         attribute  "DriverStatus",       "string"
         attribute  "DriverUpdate",       "string"
-        attribute  "ThermostatOperatingState", "string"
 
 //	  command "updateCheck"			// **---** delete for Release
     }
@@ -100,20 +101,12 @@ def coolLevelUp() {
     if (location.temperatureScale == "F")
     {
         int nextLevel = device.currentValue("coolingSetpoint") + 1
-
-        if( nextLevel > 99){
-            nextLevel = 99
-        }
         if (debugOutput) log.debug "Setting cool set point up to: ${nextLevel}"
         setCoolingSetpoint(nextLevel)
     }
     else
     {
         int nextLevel = device.currentValue("coolingSetpoint") + 0.5
-
-        if( nextLevel > 37){
-            nextLevel = 37
-        }
         if (debugOutput) log.debug "Setting cool set point up to: ${nextLevel}"
         setCoolingSetpoint(nextLevel)
 
@@ -124,20 +117,12 @@ def coolLevelDown() {
     if (location.temperatureScale == "F")
     {
         int nextLevel = device.currentValue("coolingSetpoint") - 1
-
-        if( nextLevel < 50){
-            nextLevel = 50
-        }
         if (debugOutput) log.debug "Setting cool set point down to: ${nextLevel}"
         setCoolingSetpoint(nextLevel)
     }
     else
     {
         double nextLevel = device.currentValue("coolingSetpoint") - 0.5
-
-        if( nextLevel < 10){
-            nextLevel = 10
-        }
         if (debugOutput) log.debug "Setting cool set point down to: ${nextLevel}"
         setCoolingSetpoint(nextLevel)
 
@@ -149,10 +134,6 @@ def heatLevelUp() {
     {
         if (debugOutput) log.debug "in fahrenheit level up"
         int nextLevel = device.currentValue("heatingSetpoint") + 1
-
-        if( nextLevel > 90){
-            nextLevel = 90
-        }
         if (debugOutput) log.debug "Setting heat set point up to: ${nextLevel}"
         setHeatingSetpoint(nextLevel)
     }
@@ -160,9 +141,6 @@ def heatLevelUp() {
     {
         if (debugOutput) log.debug "in celsius level up"
         double nextLevel = device.currentValue("heatingSetpoint") + 0.5
-        if( nextLevel > 33){
-            nextLevel = 33
-        }
         if (debugOutput) log.debug "Setting heat set point up to: ${nextLevel}"
         setHeatingSetpoint(nextLevel)
     }
@@ -173,9 +151,6 @@ def heatLevelDown() {
     {
         if (debugOutput) log.debug "in fahrenheit level down"
         int nextLevel = device.currentValue("heatingSetpoint") - 1
-        if( nextLevel < 40){
-            nextLevel = 40
-        }
         if (debugOutput) log.debug "Setting heat set point down to: ${nextLevel}"
         setHeatingSetpoint(nextLevel)
     }
@@ -183,9 +158,6 @@ def heatLevelDown() {
     {
         if (debugOutput) log.debug "in celsius level down"
         double nextLevel = device.currentValue("heatingSetpoint") - 0.5
-        if( nextLevel < 4){
-            nextLevel = 4
-       }
         if (debugOutput) log.debug "Setting heat set point down to: ${nextLevel}"
         setHeatingSetpoint(nextLevel)
     }
@@ -193,24 +165,47 @@ def heatLevelDown() {
 
 def setHeatingSetpoint(Double temp)
 {
-	deviceDataInit(state.PermHold)
-	device.data.HeatSetpoint = temp
-	setStatus()
-
-	if(device.data.SetStatus==1)
-	{
-      	sendEvent(name: 'heatingSetpoint', value: temp as double)
-	}	
-}
-
-def setHeatingSetpoint(temp) {
+    if(temp > state.heatUpperSetptLimit)
+    {
+        log.debug "Cannot raise heating setpoint to ${temp} as it is above limit: ${state.heatUpperSetptLimit}"
+        temp = state.heatUpperSetptLimit
+    }
+    if(temp < state.heatLowerSetptLimit)
+    {
+        log.debug "Cannot lower heating setpoint to ${temp} as it is below limit: ${state.heatLowerSetptLimit}"
+        temp = state.heatLowerSetptLimit
+    }
+    
 	deviceDataInit(state.PermHold)
 	device.data.HeatSetpoint = temp
 	setStatus()
 	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'heatingSetpoint', value: temp as Integer)
+      	sendEvent(name: 'heatingSetpoint', value: temp as double, unit:device.data.unit)
+	}	
+}
+
+def setHeatingSetpoint(temp) {
+    
+    if(temp > state.heatUpperSetptLimit)
+    {
+        log.debug "Cannot raise heating setpoint to ${temp} as it is above limit: ${state.heatUpperSetptLimit}"
+        temp = state.heatUpperSetptLimit
+    }
+    if(temp < state.heatLowerSetptLimit)
+    {
+        log.debug "Cannot lower heating setpoint to ${temp} as it is below limit: ${state.heatLowerSetptLimit}"
+        temp = state.heatLowerSetptLimit
+    }
+    
+	deviceDataInit(state.PermHold)
+	device.data.HeatSetpoint = temp
+	setStatus()
+	
+	if(device.data.SetStatus==1)
+	{
+	    sendEvent(name: 'heatingSetpoint', value: temp as Integer, unit:device.data.unit)
 	}
 }
 
@@ -229,24 +224,47 @@ def setFollowSchedule() {
 }
 
 def setCoolingSetpoint(double temp) {
+    if(temp > state.coolUpperSetptLimit)
+    {
+        log.debug "Cannot raise cooling setpoint to ${temp} as it is above limit: ${state.coolUpperSetptLimit}"
+        temp = state.coolUpperSetptLimit
+    }
+    if(temp < state.coolLowerSetptLimit)
+    {
+        log.debug "Cannot lower cooling setpoint to ${temp} as it is below limit: ${state.coolLowerSetptLimit}"
+        temp = state.coolLowerSetptLimit
+    }    
+    
 	deviceDataInit(state.PermHold)
 	device.data.CoolSetpoint = temp
 	setStatus()
-
+	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'coolingSetpoint', value: temp as double)
+	    sendEvent(name: 'coolingSetpoint', value: temp as double, unit:device.data.unit)
 	}
 }
 
 def setCoolingSetpoint(temp) {
+    
+    if(temp > state.coolUpperSetptLimit)
+    {
+        log.debug "Cannot raise cooling setpoint to ${temp} as it is above limit: ${state.coolUpperSetptLimit}"
+        temp = state.coolUpperSetptLimit
+    }
+    if(temp < state.coolLowerSetptLimit)
+    {
+        log.debug "Cannot lower cooling setpoint to ${temp} as it is below limit: ${state.coolLowerSetptLimit}"
+        temp = state.coolLowerSetptLimit
+    }
+    
 	deviceDataInit(state.PermHold)
 	device.data.CoolSetpoint = temp
 	setStatus()
-
+	
 	if(device.data.SetStatus==1)
 	{
-	    sendEvent(name: 'coolingSetpoint', value: temp as Integer)
+	    sendEvent(name: 'coolingSetpoint', value: temp as Integer, unit:device.data.unit)
 	}
 }
 
@@ -450,6 +468,11 @@ def getStatusHandler(resp, data) {
 		def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 		def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
 		def vacationHold = setStatusResult.latestData.uiData.IsInVacationHoldMode
+	
+		state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
+		state.heatUpperSetptLimit = setStatusResult.latestData.uiData.HeatUpperSetptLimit 
+		state.coolLowerSetptLimit = setStatusResult.latestData.uiData.CoolLowerSetptLimit 
+		state.coolUpperSetptLimit = setStatusResult.latestData.uiData.CoolUpperSetptLimit 
 		
 		def fanMode = setStatusResult.latestData.fanData.fanMode
 		def fanIsRunning = setStatusResult.latestData.fanData.fanIsRunning
@@ -486,15 +509,15 @@ def getStatusHandler(resp, data) {
 		def fanState = "Unknown"
 		
 		if (fanIsRunning == true) {
-		    fanState = "On";
+		    fanState = "on";
 		    if (mode == "heat") {
 		        operatingState = "heating"
 		    } else {
 		        operatingState = "cooling"
 		    }
 		} else {
-		    fanState = "Idle";
-		    operatingState = "Idle"
+		    fanState = "idle";
+		    operatingState = "idle"
 		}
 		
 		logInfo("Set Operating State to: ${operatingState}")
@@ -512,23 +535,23 @@ def getStatusHandler(resp, data) {
 				sendEvent(name: 'thermostatFanMode', value: 'circulate');
 				break;
 		}
-	
+			
 		switch(switchPos) {
 			case 1:
-				sendEvent(name: 'temperature', value: curTemp, state: 'on');
-				sendEvent(name: 'thermostatMode', value: curTemp, state: 'on');
+				sendEvent(name: 'temperature', value: curTemp, state: 'heat', unit:device.data.unit);
+				sendEvent(name: 'thermostatMode', value: 'heat');
 				break;
 			case 2:
-				sendEvent(name: 'temperature', value: curTemp, state: 'off');
-				sendEvent(name: 'thermostatMode', value: curTemp, state: 'off');
+				sendEvent(name: 'temperature', value: curTemp, state: 'off', unit:device.data.unit);
+				sendEvent(name: 'thermostatMode', value: 'off');
 				break;
 			case 3:
-				sendEvent(name: 'temperature', value: curTemp, state: 'cool');
-				sendEvent(name: 'thermostatMode', value: curTemp, state: 'cool');
+				sendEvent(name: 'temperature', value: curTemp, state: 'cool', unit:device.data.unit);
+				sendEvent(name: 'thermostatMode', value: 'cool');
 				break;
 			default:
-				sendEvent(name: 'temperature', value: curTemp, state: 'auto');
-				sendEvent(name: 'thermostatMode', value: curTemp, state: 'auto');
+				sendEvent(name: 'temperature', value: curTemp, state: 'auto', unit:device.data.unit);
+				sendEvent(name: 'thermostatMode', value: 'auto');
 				break;
 		}
 		
@@ -537,10 +560,10 @@ def getStatusHandler(resp, data) {
 		sendEvent(name: 'fanOperatingState', value: fanState)
 //		sendEvent(name: 'thermostatFanMode', value: fanMode)
 //		sendEvent(name: 'thermostatMode', value: switchPos)
-		sendEvent(name: 'coolingSetpoint', value: coolSetPoint)
-		sendEvent(name: 'heatingSetpoint', value: heatSetPoint)
-//		sendEvent(name: 'temperature', value: curTemp, state: switchPos)
-		sendEvent(name: 'relativeHumidity', value: curHumidity as Integer)
+		sendEvent(name: 'coolingSetpoint', value: coolSetPoint, unit:device.data.unit)
+		sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:device.data.unit)
+//		sendEvent(name: 'temperature', value: curTemp, state: switchPos, unit:device.data.unit)
+		sendEvent(name: 'humidity', value: curHumidity as Integer, unit:"%")
 		
 		def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
 		
@@ -549,11 +572,11 @@ def getStatusHandler(resp, data) {
 		if (enableOutdoorTemps == "Yes") {
 		
 		    if (hasOutdoorHumid) {
-		        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer)
+		        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
 		    }
 		
 		    if (hasOutdoorTemp) {
-		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer)
+		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:device.data.unit)
 		    }
 		}
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
@@ -628,6 +651,8 @@ def deviceDataInit(val) {
     device.data.FanMode = null
     device.data.StatusHeat=val
     device.data.StatusCool=val
+    device.data.unit = "°${location.temperatureScale}"
+
 }
 
 
@@ -637,9 +662,8 @@ def doRequest(uri, args, type, success) {
 }
 
 def refresh() {
-    if (debugOutput) log.debug "Honeywell TCC 'refresh'"
-    def unit = location.temperatureScale
-    if (debugOutput) log.debug "pollInterval: $pollInterval, units: = $unit"
+    device.data.unit = "°${location.temperatureScale}"
+    if (debugOutput) log.debug "Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit"
     login()
     getHumidifierStatus()
     getStatus()
