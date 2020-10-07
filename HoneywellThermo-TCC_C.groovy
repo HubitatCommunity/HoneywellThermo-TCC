@@ -13,9 +13,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *          v1.3.6   added range checking for changes to heating and cooling setpoints. Outdoor thermostate creates as a child device. Fixed bugs in use of tccSite variable.
+ *    jvm : v1.3.6   added range checking for changes to heating and cooling setpoints. Outdoor thermostate creates as a child device. Fixed bugs in use of tccSite variable.
  * csteele: v1.3.5   added "%" to humidity and centralized temp scale
- *        : v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
+ *    jvm : v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
  * csteele: v1.3.2   centralized Honeywell site url as "tccSite"
  * csteele: v1.3.1   updated to v2 of updateCheck
  * csteele: v1.3.0   converted to asynchttp where possible.
