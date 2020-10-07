@@ -13,7 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *          v1.3.6   added range checking for changes to heating and cooling setpoints.
+ *          v1.3.6   added range checking for changes to heating and cooling setpoints. Outdoor thermostate creates as a child device. Fixed bugs in use of tccSite variable.
  * csteele: v1.3.5   added "%" to humidity and centralized temp scale
  *        : v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
  * csteele: v1.3.2   centralized Honeywell site url as "tccSite"
@@ -51,7 +51,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.5"  }
+ public static String version()     {  return "v1.3.6"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -100,66 +100,44 @@ def parse(String description) {
 def coolLevelUp() {
     if (location.temperatureScale == "F")
     {
-        int nextLevel = device.currentValue("coolingSetpoint") + 1
-        if (debugOutput) log.debug "Setting cool set point up to: ${nextLevel}"
-        setCoolingSetpoint(nextLevel)
+        setCoolingSetpoint(device.currentValue("coolingSetpoint") + 1)
     }
     else
     {
-        int nextLevel = device.currentValue("coolingSetpoint") + 0.5
-        if (debugOutput) log.debug "Setting cool set point up to: ${nextLevel}"
-        setCoolingSetpoint(nextLevel)
-
+        setCoolingSetpoint( (Double) device.currentValue("coolingSetpoint") + 0.5)
     }
 }
 
 def coolLevelDown() {
     if (location.temperatureScale == "F")
     {
-        int nextLevel = device.currentValue("coolingSetpoint") - 1
-        if (debugOutput) log.debug "Setting cool set point down to: ${nextLevel}"
-        setCoolingSetpoint(nextLevel)
+        setCoolingSetpoint(device.currentValue("coolingSetpoint") - 1)
     }
     else
     {
-        double nextLevel = device.currentValue("coolingSetpoint") - 0.5
-        if (debugOutput) log.debug "Setting cool set point down to: ${nextLevel}"
-        setCoolingSetpoint(nextLevel)
-
+        setCoolingSetpoint( (Double) device.currentValue("coolingSetpoint") - 0.5)
     }
 }
 
 def heatLevelUp() {
     if (location.temperatureScale == "F")
     {
-        if (debugOutput) log.debug "in fahrenheit level up"
-        int nextLevel = device.currentValue("heatingSetpoint") + 1
-        if (debugOutput) log.debug "Setting heat set point up to: ${nextLevel}"
-        setHeatingSetpoint(nextLevel)
+        setCoolingSetpoint(device.currentValue("heatingSetpoint") + 1)
     }
     else
     {
-        if (debugOutput) log.debug "in celsius level up"
-        double nextLevel = device.currentValue("heatingSetpoint") + 0.5
-        if (debugOutput) log.debug "Setting heat set point up to: ${nextLevel}"
-        setHeatingSetpoint(nextLevel)
+        setCoolingSetpoint( (Double) device.currentValue("heatingSetpoint") + 0.5)
     }
 }
 
 def heatLevelDown() {
     if (location.temperatureScale == "F")
     {
-        if (debugOutput) log.debug "in fahrenheit level down"
-        int nextLevel = device.currentValue("heatingSetpoint") - 1
-        if (debugOutput) log.debug "Setting heat set point down to: ${nextLevel}"
-        setHeatingSetpoint(nextLevel)
+        setCoolingSetpoint(device.currentValue("heatingSetpoint") - 1)
     }
     else
     {
-        if (debugOutput) log.debug "in celsius level down"
-        double nextLevel = device.currentValue("heatingSetpoint") - 0.5
-        if (debugOutput) log.debug "Setting heat set point down to: ${nextLevel}"
-        setHeatingSetpoint(nextLevel)
+        setCoolingSetpoint( (Double) device.currentValue("heatingSetpoint") - 0.5)
     }
 }
 
@@ -570,12 +548,15 @@ def getStatusHandler(resp, data) {
 		sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 		
 		if (enableOutdoorTemps == "Yes") {
-		
+
 		    if (hasOutdoorHumid) {
+				setOutdoorHumidity(curOutdoorHumidity)
 		        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
 		    }
 		
 		    if (hasOutdoorTemp) {
+				setOutdoorTemperature(curOutdoorTemp)
+			
 		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:device.data.unit)
 		    }
 		}
@@ -587,7 +568,7 @@ def getHumidifierStatus()
 {
 	if (enableHumidity == 'No') return
 	def params = [
-        uri: "https://$tccSite/portal/Device/Menu/GetHumData/${settings.honeywelldevice}",
+        uri: "https://${tccSite()}/portal/Device/Menu/GetHumData/${settings.honeywelldevice}",
         headers: [
             'Accept': '*/*', // */ comment
             'DNT': '1',
@@ -598,7 +579,7 @@ def getHumidifierStatus()
             'Accept-Language': 'en-US,en,q=0.8',
             'Connection': 'keep-alive',
             'Host': 'rs.alarmnet.com',
-            'Referer': 'https://$tccSite/portal/Menu/${settings.honeywelldevice}',
+            'Referer': 'https://${tccSite()}/portal/Menu/${settings.honeywelldevice}',
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36',
             'Cookie': device.data.cookiess
@@ -806,6 +787,30 @@ private dbCleanUp() {
 	state.remove("verStatus")
 	state.remove("Type")
 }
+
+void setOutdoorTemperature(value){
+    def cd = getChildDevice("${device.id}-Temperature Sensor")
+	if (!cd) 
+		{
+		cd = addChildDevice("hubitat", "Generic Component Temperature Sensor", "${device.id}-Temperature Sensor", [name: "Outdoor Temperature", isComponent: true])	
+		}
+    String unit = "°${location.temperatureScale}"
+    cd.parse([[name:"temperature", value:value, descriptionText:"${cd.displayName} is ${value}${unit}.", unit: unit]])
+}
+
+void setOutdoorHumidity(value){
+
+	log.warn "Outdoor Humidity Child Device creation currently disabled due to apparent bug in firmware 2.2.2 and 2.2.3. Will revisit after release of 2.2.4!"
+	/*
+    def cd = getChildDevice("${device.id}-Humidity Sensor")
+	if (!cd) 
+		{
+		cd = addChildDevice("hubitat", "Generic Component Humidity Sensor", "${device.id}-Humidity Sensor", [name: "Outdoor Humidity", isComponent: true])	
+		}
+    cd.parse([[name:"humidity", value:value, descriptionText:"${cd.displayName} is ${value}%.", unit:"%"]])
+	*/
+}
+
 
 
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
