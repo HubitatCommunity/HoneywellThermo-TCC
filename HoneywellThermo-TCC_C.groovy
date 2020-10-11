@@ -763,7 +763,8 @@ void setOutdoorTemperature(value){
 		{
 		cd = addChildDevice("hubitat", "Generic Component Temperature Sensor", "${device.id}-Temperature Sensor", [name: "Outdoor Temperature", isComponent: true])	
 		}
-    String unit = "¬∞${location.temperatureScale}"
+    String unit = "°${location.temperatureScale}"
+
     cd.parse([[name:"temperature", value:value, descriptionText:"${cd.displayName} is ${value}${unit}.", unit: unit]])
 }
 
