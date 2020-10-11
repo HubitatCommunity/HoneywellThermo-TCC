@@ -21,7 +21,7 @@
  *                    refactored cool/heat up/down
  *     jvm:           limit checked temperature set points
  * csteele: v1.3.5   added "%" to humidity and centralized temp scale
- *   jvm33: v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
+ *     jvm: v1.3.4   added "°F" or "°C" unit to temp and setpoint events. Fixed thermostateMode being set to a temperature value.
  * csteele: v1.3.2   centralized Honeywell site url as "tccSite"
  * csteele: v1.3.1   updated to v2 of updateCheck
  * csteele: v1.3.0   converted to asynchttp where possible.
