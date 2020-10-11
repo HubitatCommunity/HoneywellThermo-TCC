@@ -13,6 +13,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.7   removed state.displayunits as unused. Everything has already been using the Hub's location.temperatureScale,
+ *                    which meant that installed() was redundant too.
  *    jvm : v1.3.6   added range checking for changes to heating and cooling setpoints. 
  *                    Outdoor thermostate creates as a child device. 
  *                    Fixed bugs in use of tccSite variable.
@@ -57,7 +59,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.6"  }
+ public static String version()     {  return "v1.3.7"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -198,7 +200,6 @@ def setHeatingSetpoint(Double temp)
 }
 
 
-
 def setFollowSchedule() {
 	if (debugOutput) log.debug "in set follow schedule"
 	deviceDataInit('0')
@@ -212,6 +213,7 @@ def setFollowSchedule() {
 //        runEvery1Minutes (getStatus)
 	}
 }
+
 
 def setTargetTemp(temp) {
 	if ((temp > state.coolLowerSetptLimit) || (temp < state.coolUpperSetptLimit)) {
@@ -413,7 +415,6 @@ def getStatusHandler(resp, data) {
 		def Boolean hasOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperatureAvailable
 		def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity
 		def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature
-//		def displayUnits = setStatusResult.latestData.uiData.DisplayUnits
 		// EquipmentOutputStatus = 0 off 1 heating 2 cooling
 		def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 		def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
@@ -446,9 +447,6 @@ def getStatusHandler(resp, data) {
 		}
 		
 		if (hasIndoorHumid == false) { curHumidity = 0 }
-
-		//  if (debugOutput) log.debug "displayUnits = $displayUnits"
-//		state.DisplayUnits = $displayUnits
 		
 		//Operating State Section 
 		//Set the operating state to off 
@@ -714,8 +712,6 @@ def poll() {
 def updated() {
     if (debugOutput) log.debug "in updated"
     pollInterval = pollIntervals.toInteger()
-    state.DisplayUnits = location.temperatureScale
-    if (debugOutput) log.debug "display units now = $state.DisplayUnits"
     if (debugOutput) log.debug "debug logging is: ${debugOutput == true}"
     log.warn "description logging is: ${descTextEnable == true}"
     unschedule()
@@ -726,11 +722,6 @@ def updated() {
     runIn(20, updateCheck) 
     if (debugOutput) log.debug "PermHold now = ${state.PermHold}"
     poll()
-}
-
-def installed() {
-    state.DisplayUnits = location.temperatureScale
-    if (debugOutput) log.debug "display units now = $state.DisplayUnits"
 }
 
 def logsOff(){
@@ -754,6 +745,7 @@ private dbCleanUp() {
 	state.remove("verUpdate")
 	state.remove("verStatus")
 	state.remove("Type")
+	state.remove("DisplayUnits")
 }
 
 
@@ -763,8 +755,7 @@ void setOutdoorTemperature(value){
 		{
 		cd = addChildDevice("hubitat", "Generic Component Temperature Sensor", "${device.id}-Temperature Sensor", [name: "Outdoor Temperature", isComponent: true])	
 		}
-    String unit = "°${location.temperatureScale}" 
-
+    String unit = "°${location.temperatureScale}"
     cd.parse([[name:"temperature", value:value, descriptionText:"${cd.displayName} is ${value}${unit}.", unit: unit]])
 }
 
