@@ -13,6 +13,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.8   made "description logging is" optional and info
+ *                    added explicit check for cooling in getStatusHandler
  * csteele: v1.3.7   removed state.displayunits as unused. Everything has already been using the Hub's location.temperatureScale,
  *                    which meant that installed() was redundant too.
  *    jvm : v1.3.6   added range checking for changes to heating and cooling setpoints. 
@@ -59,7 +61,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.7"  }
+ public static String version()     {  return "v1.3.8"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -460,7 +462,7 @@ def getStatusHandler(resp, data) {
 		    fanState = "on";
 		    if (equipmentStatus == "1") {
 		        operatingState = "heating"
-		    } else {
+		    } else if (equipmentStatus == "2") {
 		        operatingState = "cooling"
 		    }
 		}
@@ -713,7 +715,7 @@ def updated() {
     if (debugOutput) log.debug "in updated"
     pollInterval = pollIntervals.toInteger()
     if (debugOutput) log.debug "debug logging is: ${debugOutput == true}"
-    log.warn "description logging is: ${descTextEnable == true}"
+    if (descTextEnable) log.info "description logging is: ${descTextEnable == true}"
     unschedule()
     dbCleanUp()		// remove antique db entries created in older versions and no longer used.
     if (debugOutput) runIn(1800,logsOff)   
@@ -725,7 +727,7 @@ def updated() {
 }
 
 def logsOff(){
-    log.warn "debug logging disabled..."
+    if (descTextEnable) log.warn "debug logging disabled..."
     device.updateSetting("debugOutput",[value:"false",type:"bool"])
 }
 
