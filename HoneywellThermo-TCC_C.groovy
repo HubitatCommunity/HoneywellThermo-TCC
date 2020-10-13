@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * nvious1: v1.3.9   adding "fan only" operating mode for when the equipment is off but the fan is running. Added 3 min polling option. 
  * csteele: v1.3.8   made "description logging is" optional and info
  *                    added explicit check for cooling in getStatusHandler
  * csteele: v1.3.7   removed state.displayunits as unused. Everything has already been using the Hub's location.temperatureScale,
@@ -92,7 +93,7 @@ metadata {
        input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "enableHumidity", type: "enum", title: "Do you have the optional Humidity sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "setPermHold", type: "enum", title: "Will Setpoints be temporary or permanent?", options: ["Temporary", "Permanent"], required: false, defaultValue: "Temporary"
-       input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
+       input name: "pollIntervals", type: "enum", title: "Set the Poll Interval.", options: [0:"off", 60:"1 minute", 120:"2 minutes", 180:"3 minutes", 300:"5 minutes",600:"10 minutes",900:"15 minutes",1800:"30 minutes",3600:"60 minutes"], required: true, defaultValue: "600"
        input name: "debugOutput", type: "bool", title: "Enable debug logging?", defaultValue: true
        input name: "descTextEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
     }
@@ -282,7 +283,7 @@ def fanCirculate() {
 }
 
 def setThermostatFanMode(mode) { 
-	Map fanMap = [auto:0, on:1, circulate:2]   
+	Map fanMap = [auto:0, on:1, circulate:2, followSchedule:3]   
 	if (debugOutput) log.debug "setThermostatFanMode: $mode"
 	deviceDataInit(null) 
 	def fanMode = null
@@ -458,18 +459,33 @@ def getStatusHandler(resp, data) {
 		// set fan and operating state
 		def fanState = "idle"
 
-		if (fanIsRunning == true) {
+		if (fanIsRunning) {
+		    fanState = "on";
+            logInfo("In the Fan loop")
+            switch (equipmentStatus) {
+                case 0:
+                    operatingState = "fan only"
+                    break;
+                case 1:
+                    operatingState = "heating"
+                    break;
+                case 2:
+                    operatingState = "cooling"
+                    break
+            }
+            /*
+            if (fanIsRunning == true) {
 		    fanState = "on";
 		    if (equipmentStatus == "1") {
 		        operatingState = "heating"
 		    } else if (equipmentStatus == "2") {
 		        operatingState = "cooling"
-		    }
+		    } */
 		}
 		
 		logInfo("Set Operating State to: $operatingState - Fan to $fanState")
 		
-		//fan mode 0=auto, 2=circ, 1=on
+		//fan mode 0=auto, 2=circ, 1=on, 3=followSched
 		
 		switch(fanMode) {
 			case 0:
@@ -480,6 +496,9 @@ def getStatusHandler(resp, data) {
 				break;
 			case 2:
 				sendEvent(name: 'thermostatFanMode', value: 'circulate');
+				break;
+			case 3:
+                sendEvent(name: 'thermostatFanMode', value: 'followSchedule');
 				break;
 		}
 			
