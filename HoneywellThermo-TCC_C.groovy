@@ -461,7 +461,7 @@ def getStatusHandler(resp, data) {
 
 		if (fanIsRunning) {
 		    fanState = "on";
-            logInfo("In the Fan loop")
+            
             switch (equipmentStatus) {
                 case 0:
                     operatingState = "fan only"
