@@ -13,6 +13,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * bbochem: v1.3.9   Corrected operating status check to compare to integer instead of char
+ *                   Added debug logging of fanData from response
  * csteele: v1.3.8   made "description logging is" optional and info
  *                    added explicit check for cooling in getStatusHandler
  * csteele: v1.3.7   removed state.displayunits as unused. Everything has already been using the Hub's location.temperatureScale,
@@ -401,9 +403,11 @@ def getStatusHandler(resp, data) {
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
 		def setStatusResult = parseJson(resp.data)
 	
-		if (debugOutput) log.debug "Request was successful, $resp.status"
-	//	logInfo "data = $setStatusResult.data"
-		if (debugOutput) log.debug "ld = $setStatusResult.latestData.uiData"
+		if (debugOutput) {
+			log.debug "Request was successful, $resp.status"
+			log.debug "ld = $setStatusResult.latestData.uiData"
+			log.debug "fd = $setStatusResult.latestData.fanData"
+		}
 		
 		def curTemp = setStatusResult.latestData.uiData.DispTemperature
 		def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
@@ -460,9 +464,9 @@ def getStatusHandler(resp, data) {
 
 		if (fanIsRunning == true) {
 		    fanState = "on";
-		    if (equipmentStatus == "1") {
+		    if (equipmentStatus == 1) {
 		        operatingState = "heating"
-		    } else if (equipmentStatus == "2") {
+		    } else if (equipmentStatus == 2) {
 		        operatingState = "cooling"
 		    }
 		}
