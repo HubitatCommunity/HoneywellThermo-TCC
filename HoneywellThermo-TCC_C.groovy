@@ -14,6 +14,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  * csteele: v1.3.10  add support for lastRunningMode which directly follows thermostatMode
+ *                    refactored 'switch/case' code into a Map for fan and operating state
  * nvious1: v1.3.9   adding "fan only" operating mode for when the equipment is off but the fan is running. Added 3 min polling option. 
  * csteele: v1.3.8   made "description logging is" optional and info
  *                    added explicit check for cooling in getStatusHandler
