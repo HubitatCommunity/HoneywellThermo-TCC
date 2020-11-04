@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.10  add support for lastRunningMode which directly follows thermostatMode
  * nvious1: v1.3.9   adding "fan only" operating mode for when the equipment is off but the fan is running. Added 3 min polling option. 
  * csteele: v1.3.8   made "description logging is" optional and info
  *                    added explicit check for cooling in getStatusHandler
@@ -62,7 +63,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.9"  }
+ public static String version()     {  return "v1.3.10"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -82,6 +83,7 @@ metadata {
         attribute  "outdoorTemperature", "number"
         attribute  "lastUpdate",         "string"
         attribute  "followSchedule",     "string"
+        attribute  "lastRunningMode",    "string"
 
 //	  command "updateCheck"			// **---** delete for Release
     }
@@ -267,6 +269,8 @@ def setThermostatMode(mode) {
 	if(device.data.SetStatus==1)
 	{
 	    sendEvent(name: 'thermostatMode', value: mode)
+	    sendEvent(name: "lastRunningMode",value: mode)
+//	    updateDataValue("lastRunningMode", mode)
 	}
 }
 
@@ -454,72 +458,28 @@ def getStatusHandler(resp, data) {
 		//Operating State Section 
 		//Set the operating state to off 
 		// thermostatOperatingState - ENUM ["heating", "pending cool", "pending heat", "vent economizer", "idle", "cooling", "fan only"]
-		def operatingState = "idle"
 		
 		// set fan and operating state
 		def fanState = "idle"
 
 		if (fanIsRunning) {
-		    fanState = "on";
-            
-            switch (equipmentStatus) {
-                case 0:
-                    operatingState = "fan only"
-                    break;
-                case 1:
-                    operatingState = "heating"
-                    break;
-                case 2:
-                    operatingState = "cooling"
-                    break
-            }
-            /*
-            if (fanIsRunning == true) {
-		    fanState = "on";
-		    if (equipmentStatus == "1") {
-		        operatingState = "heating"
-		    } else if (equipmentStatus == "2") {
-		        operatingState = "cooling"
-		    } */
+			fanState = "on";
+
+		    def operatingState = [ 0: 'fan only', 1: 'heating', 2: 'cooling' ][equipmentStatus] ?: 'idle'
 		}
 		
 		logInfo("Set Operating State to: $operatingState - Fan to $fanState")
 		
 		//fan mode 0=auto, 2=circ, 1=on, 3=followSched
 		
-		switch(fanMode) {
-			case 0:
-				sendEvent(name: 'thermostatFanMode', value: 'auto');
-				break;
-			case 1:
-				sendEvent(name: 'thermostatFanMode', value: 'on');
-				break;
-			case 2:
-				sendEvent(name: 'thermostatFanMode', value: 'circulate');
-				break;
-			case 3:
-                sendEvent(name: 'thermostatFanMode', value: 'followSchedule');
-				break;
-		}
-			
-		switch(switchPos) {
-			case 1:
-				sendEvent(name: 'temperature', value: curTemp, state: 'heat', unit:device.data.unit);
-				sendEvent(name: 'thermostatMode', value: 'heat');
-				break;
-			case 2:
-				sendEvent(name: 'temperature', value: curTemp, state: 'off', unit:device.data.unit);
-				sendEvent(name: 'thermostatMode', value: 'off');
-				break;
-			case 3:
-				sendEvent(name: 'temperature', value: curTemp, state: 'cool', unit:device.data.unit);
-				sendEvent(name: 'thermostatMode', value: 'cool');
-				break;
-			default:
-				sendEvent(name: 'temperature', value: curTemp, state: 'auto', unit:device.data.unit);
-				sendEvent(name: 'thermostatMode', value: 'auto');
-				break;
-		}
+		n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
+		sendEvent(name: 'thermostatFanMode', value: n)
+
+		n = [ 1: 'heat', 2: 'off', 3: 'cool' ][switchPos] ?: 'auto'
+		sendEvent(name: 'temperature', value: curTemp, state: n, unit:device.data.unit)
+		sendEvent(name: 'thermostatMode', value: n)
+		sendEvent(name: "lastRunningMode",value: n)
+
 		
 		//Send events 
 		sendEvent(name: 'thermostatOperatingState', value: operatingState)
