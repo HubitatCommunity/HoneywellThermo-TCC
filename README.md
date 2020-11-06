@@ -12,15 +12,15 @@ Create an account if you don't have one.<p>
 <b>In Hubitat:</b><p>
 
 Drivers Code<br>
-New Driver<br>
-(paste in code from this repo)<br>
-Save<p>
+<ul><li>New Driver</li>
+<li>(paste in code from this repo)</li>
+  <li>Save</li></ul><p>
 
 Device<br>
-New virtual device<br>
-(give it a name)<br>
-(find user code at bottom)<br>
-save<p>
+<ul><li>New virtual device</li>
+<li>(give it a name)</li>
+<li>Type:(find user code at bottom)</li>
+<li>save</li></ul><p>
 
 Find the new device<br>
 Find Preferences down page<br>
