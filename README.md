@@ -18,7 +18,8 @@ Save<p>
 
 Device<br>
 New virtual device<br>
-<find user code at bottom><br>
+(give it a name)<br>
+(find user code at bottom)<br>
 save<p>
 
 Find the new device<br>
