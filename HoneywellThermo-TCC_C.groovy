@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.11  refactored support for lastRunningMode as data vs attribute
  * csteele: v1.3.10  add support for lastRunningMode which directly follows thermostatMode
  *                    refactored 'switch/case' code into a Map for fan and operating state
  * nvious1: v1.3.9   adding "fan only" operating mode for when the equipment is off but the fan is running. Added 3 min polling option. 
@@ -64,7 +65,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.10"  }
+ public static String version()     {  return "v1.3.11"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -84,7 +85,6 @@ metadata {
         attribute  "outdoorTemperature", "number"
         attribute  "lastUpdate",         "string"
         attribute  "followSchedule",     "string"
-        attribute  "lastRunningMode",    "string"
 
 //	  command "updateCheck"			// **---** delete for Release
     }
@@ -270,8 +270,7 @@ def setThermostatMode(mode) {
 	if(device.data.SetStatus==1)
 	{
 	    sendEvent(name: 'thermostatMode', value: mode)
-	    sendEvent(name: "lastRunningMode",value: mode)
-//	    updateDataValue("lastRunningMode", mode)
+	    lrM(mode) 
 	}
 }
 
@@ -476,10 +475,10 @@ def getStatusHandler(resp, data) {
 		n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
 		sendEvent(name: 'thermostatFanMode', value: n)
 
-		n = [ 1: 'heat', 2: 'off', 3: 'cool' ][switchPos] ?: 'auto'
+		n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto' ][switchPos] ?: 'auto'
 		sendEvent(name: 'temperature', value: curTemp, state: n, unit:device.data.unit)
 		sendEvent(name: 'thermostatMode', value: n)
-		sendEvent(name: "lastRunningMode",value: n)
+		lrM(n)
 
 		
 		//Send events 
@@ -557,7 +556,7 @@ def getHumidStatusHandler(resp, data) {
         logInfo("DeviceId: ${response.data.humData.DeviceId}")        
         logInfo("IndoorHumidity: ${response.data.humData.IndoorHumidity}")        
 
-    }
+     }
     } 
     catch (e) {
     	log.error "Something went wrong: $e"
@@ -565,6 +564,12 @@ def getHumidStatusHandler(resp, data) {
 
 }
 
+// Update lastRunningMode based on mode and operatingstate
+def lrM(mode) {
+	String lrm = getDataValue("lastRunningMode")
+	if (mode.contains("auto") || mode.contains("off") && lrm != "heat") { updateDataValue("lastRunningMode", "heat") }
+	 else { updateDataValue("lastRunningMode", mode) }
+}
 
 def api(method, args = [], success = {}) {
 
