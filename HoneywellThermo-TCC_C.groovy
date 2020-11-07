@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *     jvm: v1.3.12  Enabled Humidity child device.
  * csteele: v1.3.11  refactored support for lastRunningMode as data vs attribute
  * csteele: v1.3.10  add support for lastRunningMode which directly follows thermostatMode
  *                    refactored 'switch/case' code into a Map for fan and operating state
@@ -747,16 +748,12 @@ void setOutdoorTemperature(value){
 }
 
 void setOutdoorHumidity(value){
-
-	log.warn "Outdoor Humidity Child Device creation currently disabled due to apparent bug in firmware 2.2.2 and 2.2.3. Will revisit after release of 2.2.4!"
-	/*
     def cd = getChildDevice("${device.id}-Humidity Sensor")
 	if (!cd) 
 		{
 		cd = addChildDevice("hubitat", "Generic Component Humidity Sensor", "${device.id}-Humidity Sensor", [name: "Outdoor Humidity", isComponent: true])	
 		}
     cd.parse([[name:"humidity", value:value, descriptionText:"${cd.displayName} is ${value}%.", unit:"%"]])
-	*/
 }
 
 
