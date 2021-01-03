@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.13  added Initialize per ryanmellish suggestion to jumpstart polling after hub power cycle.
  *     jvm: v1.3.12  Enabled Humidity child device.
  * csteele: v1.3.11  refactored support for lastRunningMode as data vs attribute
  * csteele: v1.3.10  add support for lastRunningMode which directly follows thermostatMode
@@ -66,7 +67,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.12"  }
+ public static String version()     {  return "v1.3.13"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -76,7 +77,8 @@ metadata {
         capability "Refresh"
         capability "Temperature Measurement"
         capability "Sensor"
-        capability "Relative Humidity Measurement"    
+        capability "Relative Humidity Measurement"
+        capability "Initialize"   
         command    "heatLevelUp"
         command    "heatLevelDown"
         command    "coolLevelUp"
@@ -572,9 +574,7 @@ def lrM(mode) {
 	 else { updateDataValue("lastRunningMode", mode) }
 }
 
-def api(method, args = [], success = {}) {
-
-}
+def api(method, args = [], success = {}) {}
 
 // initialize the device values. Each method overwrites it's specific value
 def deviceDataInit(val) {
@@ -589,7 +589,6 @@ def deviceDataInit(val) {
     device.data.unit = "°${location.temperatureScale}"
 
 }
-
 
 // Need to be logged in before this is called. So don't call this. Call api.
 def doRequest(uri, args, type, success) {
@@ -679,6 +678,13 @@ def login() {
         log.warn "Something went wrong during login: $e"
     }
 }
+
+// Initialize after hub power cycle to force a poll cycle
+def initialize() {
+    logInfo "Initialize Poll"
+    poll()
+}
+
 
 /* def isLoggedIn() {
     if(!device.data.auth) {
