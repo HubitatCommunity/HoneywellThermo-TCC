@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *     jvm: v1.3.14  fix to address "componentRefresh()" error in logs.
  * csteele: v1.3.13  added Initialize per ryanmellish suggestion to jumpstart polling after hub power cycle.
  *     jvm: v1.3.12  Enabled Humidity child device.
  * csteele: v1.3.11  refactored support for lastRunningMode as data vs attribute
@@ -67,7 +68,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.13"  }
+ public static String version()     {  return "v1.3.14"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
@@ -593,6 +594,12 @@ def deviceDataInit(val) {
 // Need to be logged in before this is called. So don't call this. Call api.
 def doRequest(uri, args, type, success) {
 
+}
+
+void componentRefresh(cd)
+{
+	if (debugOutput) log.debug "Refresh request from device ${cd.displayName}. This will refresh all component devices."
+	getStatus()
 }
 
 def refresh() {
