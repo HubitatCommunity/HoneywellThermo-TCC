@@ -68,7 +68,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.13"  }
+ public static String version()     {  return "v1.3.14"  }
  public static String tccSite() 	{  return "www.mytotalconnectcomfort.com"  }
 
 metadata {
