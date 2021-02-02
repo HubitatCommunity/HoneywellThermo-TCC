@@ -723,7 +723,7 @@ void componentRefresh(cd)
 }
 
 def refresh(Boolean fromUnauth = false) {
-    device.data.unit = "¬∞${location.temperatureScale}"
+    device.data.unit = "°${location.temperatureScale}"
     if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = $device.data.unit, fromUnauth = $fromUnauth"
     login(fromUnauth)
     getHumidifierStatus(fromUnauth)
