@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * tinfoil: v1.3.16  fix to heatLevelUp/Down commands
  *     lgk: v1.3.15  add retries after unauthorized and read failures.
  *                   add html query and parsing to get whole house/steam humidifier info and put in attributes.
  *                   changed tcc line.
@@ -75,7 +76,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.15"  }
+ public static String version()     {  return "v1.3.16"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -129,8 +130,8 @@ def parse(String description) {
 // handle commands
 def coolLevelUp()   {  if (location.temperatureScale == "F")  {  setCoolingSetpoint(device.currentValue("coolingSetpoint") + 1) } else { setCoolingSetpoint( (Double) device.currentValue("coolingSetpoint") + 0.5) }}
 def coolLevelDown() {  if (location.temperatureScale == "F")  {  setCoolingSetpoint(device.currentValue("coolingSetpoint") - 1) } else { setCoolingSetpoint( (Double) device.currentValue("coolingSetpoint") - 0.5) }}
-def heatLevelUp()   {  if (location.temperatureScale == "F")  {  setCoolingSetpoint(device.currentValue("heatingSetpoint") + 1) } else { setCoolingSetpoint( (Double) device.currentValue("heatingSetpoint") + 0.5) }}
-def heatLevelDown() {  if (location.temperatureScale == "F")  {  setCoolingSetpoint(device.currentValue("heatingSetpoint") - 1) } else { setCoolingSetpoint( (Double) device.currentValue("heatingSetpoint") - 0.5) }}
+def heatLevelUp()   {  if (location.temperatureScale == "F")  {  setHeatingSetpoint(device.currentValue("heatingSetpoint") + 1) } else { setHeatingSetpoint( (Double) device.currentValue("heatingSetpoint") + 0.5) }}
+def heatLevelDown() {  if (location.temperatureScale == "F")  {  setHeatingSetpoint(device.currentValue("heatingSetpoint") - 1) } else { setHeatingSetpoint( (Double) device.currentValue("heatingSetpoint") - 0.5) }}
 
 
 def setCoolingSetpoint(temp) {
