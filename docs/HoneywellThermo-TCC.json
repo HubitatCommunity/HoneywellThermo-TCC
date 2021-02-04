@@ -1,9 +1,9 @@
 {
   "packageName": "HoneywellThermo-TCC",
   "author": "csteele",
-  "version": "1.3.16",
-  "minimumHEVersion": "1.3.16",
-  "dateReleased": "2021-02-01",
+  "version": "1.3.17",
+  "minimumHEVersion": "1.3.17",
+  "dateReleased": "2021-02-03",
   "category": "Control",
   "tags": ["Temperature & Humidity"],
   "drivers": [
