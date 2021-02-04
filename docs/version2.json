@@ -5,6 +5,6 @@
          "application": {
          },
          "driver": {
-                 "HoneywellThermoTCC_C":  {"ver": "1.3.16", "updated": "02/03/2021"}
+                 "HoneywellThermoTCC_C":  {"ver": "1.3.17", "updated": "02/03/2021"}
          }
 }
