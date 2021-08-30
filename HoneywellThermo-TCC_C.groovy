@@ -13,6 +13,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.18  FollowSchedule enhanced.
+ *                    added HoldTime and TemporaryHoldUntilTime into data storage.
+ *                    added isScheduleCapable to FollowSchedule check.
  *     lgk: v1.3.17  initialize device.data.unit 
  * tinfoil: v1.3.16  fix to heatLevelUp/Down commands
  *     lgk: v1.3.15  add retries after unauthorized and read failures.
@@ -77,7 +80,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.17"  }
+ public static String version()     {  return "v1.3.18"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -355,7 +358,9 @@ def setStatus() {
             StatusHeat: device.data.StatusHeat,
             StatusCool: device.data.StatusCool,
             fanMode: device.data.FanMode,
-            DisplayUnits: location.temperatureScale
+            DisplayUnits: location.temperatureScale,
+            TemporaryHoldUntilTime: device.data.TemporaryHoldUntilTime,
+            VacationHold: device.data.VacationHold
         ],
 	  timeout: 10
     ]
@@ -443,12 +448,14 @@ def getStatusHandler(resp, data) {
 	def curHumidity = setStatusResult.latestData.uiData.IndoorHumidity
 	def Boolean hasOutdoorHumid = setStatusResult.latestData.uiData.OutdoorHumidityAvailable
 	def Boolean hasOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperatureAvailable
+	def Boolean isScheduleCapable = setStatusResult.latestData.uiData.ScheduleCapable
 	def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity
 	def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature
 	// EquipmentOutputStatus = 0 off 1 heating 2 cooling
 	def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
 	def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
-	def vacationHold = setStatusResult.latestData.uiData.IsInVacationHoldMode
+	def vacationHoldMode = setStatusResult.latestData.uiData.IsInVacationHoldMode
+	def vacationHold = setStatusResult.latestData.uiData.VacationHold
 	device.data.unit = "°${location.temperatureScale}" //
 
 	state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
@@ -467,12 +474,12 @@ def getStatusHandler(resp, data) {
 	    sendEvent(name: 'followSchedule', value: "TemporaryHold")
 	}
 
-	if (vacationHold == true) {
+	if (vacationHoldMode == true) {
 	    if (debugOutput) log.debug "sending vacation hold"
 	    sendEvent(name: 'followSchedule', value: "VacationHold")
 	}
 
-	if (vacationHold == false && holdTime == 0) {
+	if (vacationHold == false && holdTime == 0 && isScheduleCapable == true ) {
 	    if (debugOutput) log.debug "Sending following schedule"
 	    sendEvent(name: 'followSchedule', value: "FollowingSchedule")
 	}
@@ -704,6 +711,9 @@ def deviceDataInit(val) {
     device.data.FanMode = null
     device.data.StatusHeat=val
     device.data.StatusCool=val
+    device.data.TemporaryHoldUntilTime=val
+    device.data.VacationHold=val
+
     device.data.unit = "°${location.temperatureScale}"
 
 }
