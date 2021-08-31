@@ -711,8 +711,8 @@ def deviceDataInit(val) {
     device.data.FanMode = null
     device.data.StatusHeat=val
     device.data.StatusCool=val
-    device.data.TemporaryHoldUntilTime=val
-    device.data.VacationHold=val
+    device.data.TemporaryHoldUntilTime=null
+    device.data.VacationHold=null
 
     device.data.unit = "°${location.temperatureScale}"
 
