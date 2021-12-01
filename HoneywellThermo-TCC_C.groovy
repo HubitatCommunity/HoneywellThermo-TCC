@@ -13,6 +13,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * csteele: v1.3.19  FollowSchedule typo.
  * csteele: v1.3.18  FollowSchedule enhanced.
  *                    added HoldTime and TemporaryHoldUntilTime into data storage.
  *                    added isScheduleCapable to FollowSchedule check.
@@ -80,7 +81,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.18"  }
+ public static String version()     {  return "v1.3.19"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -149,7 +150,7 @@ def setCoolingSetpoint(temp) {
             temp = state.coolUpperSetptLimit
             log.warn "Set Point out of range, high" 
         }
-        deviceDataInit(state.PermHold)
+        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         device.data.CoolSetpoint = temp
         log.info "Setting cool setpoint to: ${temp}"
         setStatus()
@@ -171,7 +172,7 @@ def setCoolingSetpoint(double temp) {
              temp = state.coolUpperSetptLimit
              log.warn "Set Point out of range, high" 
          }
-        deviceDataInit(state.PermHold)
+        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         device.data.CoolSetpoint = temp
         log.info "Setting cool set point down to: ${temp}"
         setStatus()
@@ -194,7 +195,7 @@ def setHeatingSetpoint(temp) {
              temp = state.heatUpperSetptLimit
              log.warn "Set Point out of range, high" 
          }
-        deviceDataInit(state.PermHold)
+        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         device.data.HeatSetpoint = temp
         log.info "Setting heat setpoint to: ${temp}"
         setStatus()
@@ -217,7 +218,7 @@ def setHeatingSetpoint(Double temp)
              temp = state.heatUpperSetptLimit
              log.warn "Set Point out of range, high" 
          }
-        deviceDataInit(state.PermHold)
+        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         device.data.HeatSetpoint = temp
         log.info "Setting heat set point down to: ${temp}"
         setStatus()
@@ -231,7 +232,7 @@ def setHeatingSetpoint(Double temp)
 
 def setFollowSchedule() {
 	if (debugOutput) log.debug "in set follow schedule"
-	deviceDataInit('0')
+	deviceDataInit(0) 	 // reset all params, then set individually
 //	device.data.HeatSetpoint = temp
 	setStatus()
 
@@ -246,7 +247,7 @@ def setFollowSchedule() {
 
 def setTargetTemp(temp) {
 	if ((temp > state.coolLowerSetptLimit) || (temp < state.coolUpperSetptLimit)) {
-		deviceDataInit(state.PermHold)
+		deviceDataInit(state.PermHold) 	 // reset all params, then set individually
 		device.data.HeatSetpoint = temp
 		device.data.CoolSetpoint = temp
 		setStatus()
@@ -255,7 +256,7 @@ def setTargetTemp(temp) {
 
 def setTargetTemp(double temp) {
 	if ((temp > state.coolLowerSetptLimit) || (temp < state.coolUpperSetptLimit)) {
-		deviceDataInit(state.PermHold)
+		deviceDataInit(state.PermHold) 	 // reset all params, then set individually
 		device.data.HeatSetpoint = temp
 		device.data.CoolSetpoint = temp
 		setStatus()
@@ -285,7 +286,7 @@ def emergencyHeat() {
 def setThermostatMode(mode) {
 	Map modeMap = [auto:5, cool:3, heat:1, off:2]
 	if (debugOutput) log.debug "setThermostatMode: $mode"
-	deviceDataInit(null)
+	deviceDataInit(null) 	 // reset all params, then set individually
 
 	device.data.SystemSwitch = modeMap.find{ mode == it.key }?.value
 	setStatus()
@@ -312,7 +313,7 @@ def fanCirculate() {
 def setThermostatFanMode(mode) { 
 	Map fanMap = [auto:0, on:1, circulate:2, followSchedule:3]   
 	if (debugOutput) log.debug "setThermostatFanMode: $mode"
-	deviceDataInit(null) 
+	deviceDataInit(null)  	 // reset all params, then set individually
 	def fanMode = null
 	
 	device.data.FanMode = fanMap.find{ mode == it.key }?.value
@@ -467,7 +468,8 @@ def getStatusHandler(resp, data) {
 	def fanIsRunning = setStatusResult.latestData.fanData.fanIsRunning
 
 	if (debugOutput) log.debug "got holdTime = $holdTime"
-	if (debugOutput) log.debug "got Vacation Hold = $vacationHold"
+	if (debugOutput) log.debug "got Vacation Hold = $vacationHoldMode"
+	if (debugOutput) log.debug "got scheduleCapable = $isScheduleCapable"
 	
 	if (holdTime != 0) {
 	    if (debugOutput) log.debug "sending temporary hold"
@@ -479,7 +481,7 @@ def getStatusHandler(resp, data) {
 	    sendEvent(name: 'followSchedule', value: "VacationHold")
 	}
 
-	if (vacationHold == false && holdTime == 0 && isScheduleCapable == true ) {
+	if (vacationHoldMode == false && holdTime == 0 && isScheduleCapable == true ) {
 	    if (debugOutput) log.debug "Sending following schedule"
 	    sendEvent(name: 'followSchedule', value: "FollowingSchedule")
 	}
@@ -509,7 +511,7 @@ def getStatusHandler(resp, data) {
 	    operatingState = "Humidifying"
 	}
 
-	logInfo("Set Operating State to: $operatingState - Fan to $fanState")
+	logInfo("Get Operating State: $operatingState - Fan to $fanState")
 	
 	//fan mode 0=auto, 2=circ, 1=on, 3=followSched
 	
@@ -702,7 +704,7 @@ def lrM(mode) {
 def api(method, args = [], success = {}) {}
 
 // initialize the device values. Each method overwrites it's specific value
-def deviceDataInit(val) {
+def deviceDataInit(val) { 	 // reset all params, then set individually
     device.data.SystemSwitch = null 
     device.data.HeatSetpoint = null
     device.data.CoolSetpoint = null
