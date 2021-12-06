@@ -13,7 +13,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- * csteele: v1.3.20  Added "emergency/auxilliary" heat.
+ * csteele: v1.3.20  Added "emergency/auxiliary" heat.
+ *                    added fanOperatingState Attribute.
  * csteele: v1.3.19  FollowSchedule typo.
  * csteele: v1.3.18  FollowSchedule enhanced.
  *                    added HoldTime and TemporaryHoldUntilTime into data storage.
@@ -82,7 +83,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.19"  }
+ public static String version()     {  return "v1.3.20"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -103,6 +104,7 @@ metadata {
         attribute  "outdoorTemperature", "number"
         attribute  "lastUpdate",         "string"
         attribute  "followSchedule",     "string"
+        attribute  "fanOperatingState",  "string"
         
         attribute "humidifierStatus", "string"
         attribute "humidifierSetPoint", "number"
@@ -282,7 +284,7 @@ def cool() {
 
 def emergencyHeat() {
 	if (isEmergencyHeatAllowed) {
-		if (debugOutput) log.debug "Set Emergency/Auxilliary Heat On"
+		if (debugOutput) log.debug "Set Emergency/Auxiliary Heat On"
 		setThermostatMode('emergency heat')
 	}
 }
@@ -524,7 +526,7 @@ def getStatusHandler(resp, data) {
 	n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
 	sendEvent(name: 'thermostatFanMode', value: n)
 
-	n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto', 4: 'auxilliary' ][switchPos] ?: 'auto'
+	n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto', 4: 'emergency heat' ][switchPos] ?: 'auto'
 	sendEvent(name: 'temperature', value: curTemp, state: n, unit:device.data.unit)
 	sendEvent(name: 'thermostatMode', value: n)
 	lrM(n)
