@@ -6,7 +6,7 @@
   "dateReleased": "2022-05-13",
   "category": "Control",
   "tags": ["Temperature & Humidity"],
-  "releaseNotes": "v1.3.21  Added "accumulation" feature to setStatus.\n                    login returns true/false allowing get/setStatus to retry login",
+  "releaseNotes": "v1.3.21  Added 'accumulation' feature to setStatus.\n                    login returns true/false allowing get/setStatus to retry login",
   "drivers": [
     {
       "id": "0982a2be-81b4-43b1-88ed-350fa8ce62c9",
