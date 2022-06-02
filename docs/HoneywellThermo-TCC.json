@@ -13,7 +13,7 @@
       "name": "Total Comfort API C",
       "namespace": "csteele",
       "location": "https://raw.githubusercontent.com/HubitatCommunity/HoneywellThermo-TCC/master/HoneywellThermo-TCC_C.groovy",
-      "required": false,
+      "required": true,
       "oauth": false,
       "description": "Integrate Honeywell's Total Comfort Control for your WiFi Thermostat."
     }
