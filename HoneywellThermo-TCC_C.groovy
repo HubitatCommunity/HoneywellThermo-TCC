@@ -148,7 +148,7 @@ def heatLevelDown() {  if (location.temperatureScale == "F")  {  setHeatingSetpo
 def setCoolingSetpoint(temp) {
 	float valIn = temp // for limits check
 	temp = ensureRange( temp.toFloat(), state.coolLowerSetptLimit.toFloat(), state.coolUpperSetptLimit.toFloat() )
-	if (valIn != vtempal) log.warn "SetPoint limited due to: out of range" 
+	if (valIn != temp) log.warn "SetPoint limited due to: out of range" 
         deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         state.deviceSetting.CoolSetpoint = temp
         log.info "Setting cool setpoint to: ${temp}"
