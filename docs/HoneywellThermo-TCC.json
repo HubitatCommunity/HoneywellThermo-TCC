@@ -1,12 +1,12 @@
 {
   "packageName": "HoneywellThermo-TCC",
   "author": "csteele",
-  "version": "1.3.2",
+  "version": "1.3.22",
   "minimumHEVersion": "1.3.18",
   "dateReleased": "2022-05-13",
   "category": "Control",
   "tags": ["Temperature & Humidity"],
-  "releaseNotes": "v1.3.21  Added 'accumulation' feature to setStatus.\n                    login returns true/false allowing get/setStatus to retry login",
+  "releaseNotes": "v1.3.22  Incorporated PR from HeatVent. Typo in a var name.\nv1.3.21  Added 'accumulation' feature to setStatus.\n                    login returns true/false allowing get/setStatus to retry login",
   "drivers": [
     {
       "id": "0982a2be-81b4-43b1-88ed-350fa8ce62c9",
