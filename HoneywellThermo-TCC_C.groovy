@@ -15,6 +15,7 @@
  *
  *
  *
+ * csteele: v1.3.22  Incorporated PR from HeatVent. Typo in a var name.
  * csteele: v1.3.21  Added "accumulation" feature to setStatus.
  *                   login returns true/false allowing get/setStatus to retry login
  * csteele: v1.3.20  Added "emergency/auxiliary" heat.
@@ -87,7 +88,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.21"  }
+ public static String version()     {  return "v1.3.22"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -116,6 +117,7 @@ metadata {
         attribute "humidifierLowerLimit", "number"
 
 
+//	  command "updateCheck"			// **---** delete for Release
     }
 
     preferences {
@@ -148,7 +150,7 @@ def heatLevelDown() {  if (location.temperatureScale == "F")  {  setHeatingSetpo
 def setCoolingSetpoint(temp) {
 	float valIn = temp // for limits check
 	temp = ensureRange( temp.toFloat(), state.coolLowerSetptLimit.toFloat(), state.coolUpperSetptLimit.toFloat() )
-	if (valIn != vtempal) log.warn "SetPoint limited due to: out of range" 
+	if (valIn != temp) log.warn "SetPoint limited due to: out of range" 
         deviceDataInit(state.PermHold) 	 // reset all params, then set individually
         state.deviceSetting.CoolSetpoint = temp
         log.info "Setting cool setpoint to: ${temp}"
@@ -211,13 +213,36 @@ def setHeatingSetpoint(Double temp)
 def setFollowSchedule() {
 	if (debugOutput) log.debug "in set follow schedule"
 	deviceDataInit(0) 	 // reset all params, then set individually
+//	state.deviceSetting.HeatSetpoint = temp
 	setStatus()
 
-	if(device.data.SetStatus==1) {
+	if(device.data.SetStatus==1)
+	{
         if (debugOutput) log.debug "Successfully sent follow schedule.!"
+//        runIn(60,getStatus)
+//        runEvery1Minutes (getStatus)
 	}
 }
 
+/* ///
+def setTargetTemp(temp) {
+	if ((temp > state.coolLowerSetptLimit) || (temp < state.coolUpperSetptLimit)) {
+		deviceDataInit(state.PermHold) 	 // reset all params, then set individually
+		state.deviceSetting.HeatSetpoint = temp
+		state.deviceSetting.CoolSetpoint = temp
+		setStatus()
+	} else { log.warn "Set Point out of range: $temp" }
+}
+
+def setTargetTemp(double temp) {
+	if ((temp > state.coolLowerSetptLimit) || (temp < state.coolUpperSetptLimit)) {
+		deviceDataInit(state.PermHold) 	 // reset all params, then set individually
+		state.deviceSetting.HeatSetpoint = temp
+		state.deviceSetting.CoolSetpoint = temp
+		setStatus()
+	} else { log.warn "Set Point out of range: $temp" }
+}
+*/
 
 def off() {
 	setThermostatMode('off')
@@ -245,11 +270,13 @@ def emergencyHeat() {
 def setThermostatMode(mode) {
 	Map modeMap = [auto:5, cool:3, heat:1, off:2, 'emergency heat':4]
 	if (debugOutput) log.debug "setThermostatMode: $mode"
+//	deviceDataInit(null) 	 // reset all params, then set individually
 
 	state.deviceSetting.SystemSwitch = modeMap.find{ mode == it.key }?.value
 	setStatus()
 	
-	if(device.data.SetStatus==1) {
+	if(device.data.SetStatus==1)
+	{
 	    sendEvent(name: 'thermostatMode', value: mode)
 	    lrM(mode) 
 	}
@@ -270,12 +297,14 @@ def fanCirculate() {
 def setThermostatFanMode(mode) { 
 	Map fanMap = [auto:0, on:1, circulate:2, followSchedule:3]   
 	if (debugOutput) log.debug "setThermostatFanMode: $mode"
+//	deviceDataInit(null)  	 // reset all params, then set individually
 	def fanMode = null
 	
 	state.deviceSetting.FanMode = fanMap.find{ mode == it.key }?.value
 	setStatus()
 	
-	if(device.data.SetStatus==1) {
+	if(device.data.SetStatus==1)
+	{
 	    sendEvent(name: 'thermostatFanMode', value: mode)    
 	}
 }
@@ -343,6 +372,24 @@ void settingsAccumWait() {
 
 	// prepare for the next cycle by clearing all the values just sent.
 	deviceDataInit(null)
+
+/*
+    if (debugOutput) log.debug "params = $params"
+    asynchttpPost("setStatusHandler", params) 
+*/
+}    
+
+
+def setStatusHandler(resp, data) {
+	//log.debug "data was passed successfully"
+	//log.debug "status of post call is: ${resp.status}"
+
+	if(resp.getStatus() == 408) {if (debugOutput) log.debug "TCC Request timed out, $resp.status"}
+	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+		def setStatusResult = resp.data
+		if (debugOutput) log.debug "Request was successful, $resp.status"
+		device.data.SetStatus = 1
+	} else { if (descTextEnable) log.info "TCC setStatus failed" }
 }
 
 
@@ -379,138 +426,141 @@ def getStatusHandler(resp, data) {
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
 		def setStatusResult = parseJson(resp.data)
 	
-      	if (debugOutput) { 
-      	    log.debug "Request was successful, $resp.status"
-      	    log.debug "data = $setStatusResult"
-      	    log.debug "ld = $setStatusResult.latestData.uiData"
-      	    log.debug "ld = $setStatusResult.latestData.fanData"
-      	}
-      	  
-		def curTemp = setStatusResult.latestData.uiData.DispTemperature
-		def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
-		def coolSetPoint = setStatusResult.latestData.uiData.CoolSetpoint
-		def heatSetPoint = setStatusResult.latestData.uiData.HeatSetpoint
-		def statusCool = setStatusResult.latestData.uiData.StatusCool
-		def statusHeat = setStatusResult.latestData.uiData.StatusHeat
-		def Boolean hasIndoorHumid= setStatusResult.latestData.uiData.IndoorHumiditySensorAvailable
-		def curHumidity = setStatusResult.latestData.uiData.IndoorHumidity
-		def Boolean hasOutdoorHumid = setStatusResult.latestData.uiData.OutdoorHumidityAvailable
-		def Boolean hasOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperatureAvailable
-		def Boolean isScheduleCapable = setStatusResult.latestData.uiData.ScheduleCapable
-		def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity
-		def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature
-		// EquipmentOutputStatus = 0 off 1 heating 2 cooling
-		def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
-		def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
-		def vacationHoldMode = setStatusResult.latestData.uiData.IsInVacationHoldMode
-		def vacationHold = setStatusResult.latestData.uiData.VacationHold
-		def Boolean isEmergencyHeatAllowed = setStatusResult.latestData.uiData.SwitchEmergencyHeatAllowed
+      if (debugOutput) { 
+          log.debug "Request was successful, $resp.status"
+          log.debug "data = $setStatusResult"
+          log.debug "ld = $setStatusResult.latestData.uiData"
+          log.debug "ld = $setStatusResult.latestData.fanData"
+      }
+        
+	def curTemp = setStatusResult.latestData.uiData.DispTemperature
+	def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
+	def coolSetPoint = setStatusResult.latestData.uiData.CoolSetpoint
+	def heatSetPoint = setStatusResult.latestData.uiData.HeatSetpoint
+	def statusCool = setStatusResult.latestData.uiData.StatusCool
+	def statusHeat = setStatusResult.latestData.uiData.StatusHeat
+	def Boolean hasIndoorHumid= setStatusResult.latestData.uiData.IndoorHumiditySensorAvailable
+	def curHumidity = setStatusResult.latestData.uiData.IndoorHumidity
+	def Boolean hasOutdoorHumid = setStatusResult.latestData.uiData.OutdoorHumidityAvailable
+	def Boolean hasOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperatureAvailable
+	def Boolean isScheduleCapable = setStatusResult.latestData.uiData.ScheduleCapable
+	def curOutdoorHumidity = setStatusResult.latestData.uiData.OutdoorHumidity
+	def curOutdoorTemp = setStatusResult.latestData.uiData.OutdoorTemperature
+	// EquipmentOutputStatus = 0 off 1 heating 2 cooling
+	def equipmentStatus = setStatusResult.latestData.uiData.EquipmentOutputStatus	
+	def holdTime = setStatusResult.latestData.uiData.TemporaryHoldUntilTime
+	def vacationHoldMode = setStatusResult.latestData.uiData.IsInVacationHoldMode
+	def vacationHold = setStatusResult.latestData.uiData.VacationHold
+	def Boolean isEmergencyHeatAllowed = setStatusResult.latestData.uiData.SwitchEmergencyHeatAllowed
+
+	state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
+	state.heatUpperSetptLimit = setStatusResult.latestData.uiData.HeatUpperSetptLimit 
+	state.coolLowerSetptLimit = setStatusResult.latestData.uiData.CoolLowerSetptLimit 
+	state.coolUpperSetptLimit = setStatusResult.latestData.uiData.CoolUpperSetptLimit 
 	
-		state.heatLowerSetptLimit = setStatusResult.latestData.uiData.HeatLowerSetptLimit 
-		state.heatUpperSetptLimit = setStatusResult.latestData.uiData.HeatUpperSetptLimit 
-		state.coolLowerSetptLimit = setStatusResult.latestData.uiData.CoolLowerSetptLimit 
-		state.coolUpperSetptLimit = setStatusResult.latestData.uiData.CoolUpperSetptLimit 
-		
-		def fanMode = setStatusResult.latestData.fanData.fanMode
-		def fanIsRunning = setStatusResult.latestData.fanData.fanIsRunning
+	def fanMode = setStatusResult.latestData.fanData.fanMode
+	def fanIsRunning = setStatusResult.latestData.fanData.fanIsRunning
+
+	if (debugOutput) log.debug "got holdTime = $holdTime"
+	if (debugOutput) log.debug "got Vacation Hold = $vacationHoldMode"
+	if (debugOutput) log.debug "got scheduleCapable = $isScheduleCapable"
+	if (debugOutput) log.debug "got Emergency Heat = $isEmergencyHeatAllowed"
 	
-		if (debugOutput) log.debug "got holdTime = $holdTime"
-		if (debugOutput) log.debug "got Vacation Hold = $vacationHoldMode"
-		if (debugOutput) log.debug "got scheduleCapable = $isScheduleCapable"
-		if (debugOutput) log.debug "got Emergency Heat = $isEmergencyHeatAllowed"
-		
-		if (holdTime != 0) {
-		    if (debugOutput) log.debug "sending temporary hold"
-		    sendEvent(name: 'followSchedule', value: "TemporaryHold")
-		}
+	if (holdTime != 0) {
+	    if (debugOutput) log.debug "sending temporary hold"
+	    sendEvent(name: 'followSchedule', value: "TemporaryHold")
+	}
+
+	if (vacationHoldMode == true) {
+	    if (debugOutput) log.debug "sending vacation hold"
+	    sendEvent(name: 'followSchedule', value: "VacationHold")
+	}
+
+	if (vacationHoldMode == false && holdTime == 0 && isScheduleCapable == true ) {
+	    if (debugOutput) log.debug "Sending following schedule"
+	    sendEvent(name: 'followSchedule', value: "FollowingSchedule")
+	}
+
+	if (hasIndoorHumid == false) { curHumidity = 0 }
+
+	//Operating State Section 
+	//Set the operating state to off 
+	// thermostatOperatingState - ENUM ["heating", "pending cool", "pending heat", "vent economizer", "idle", "cooling", "fan only"]
+
+	// set fan and operating state
+	def fanState = "idle"
+
+	if (fanIsRunning) {
+		fanState = "on";
+	} 
+
+	def operatingState = [ 0: 'idle', 1: 'heating', 2: 'cooling' ][equipmentStatus] ?: 'idle'
+
+	if ((haveHumidifier != 'Yes') && (fanIsRunning == true) && (equipmentStatus == 0))
+	{ 
+	    operatingState = "fan only"
+	}
+
+	else if ((haveHumidifier == 'Yes')  && (fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
+	{
+	    operatingState = "Humidifying"
+	}
+
+	logInfo("Get Operating State: $operatingState - Fan to $fanState")
 	
-		if (vacationHoldMode == true) {
-		    if (debugOutput) log.debug "sending vacation hold"
-		    sendEvent(name: 'followSchedule', value: "VacationHold")
-		}
+	//fan mode 0=auto, 2=circ, 1=on, 3=followSched
 	
-		if (vacationHoldMode == false && holdTime == 0 && isScheduleCapable == true ) {
-		    if (debugOutput) log.debug "Sending following schedule"
-		    sendEvent(name: 'followSchedule', value: "FollowingSchedule")
-		}
-	
-		if (hasIndoorHumid == false) { curHumidity = 0 }
-	
-		//Operating State Section 
-		//Set the operating state to off 
-		// thermostatOperatingState - ENUM ["heating", "pending cool", "pending heat", "vent economizer", "idle", "cooling", "fan only"]
-	
-		// set fan and operating state
-		def fanState = "idle"
-	
-		if (fanIsRunning) {
-			fanState = "on";
-		} 
-	
-		def operatingState = [ 0: 'idle', 1: 'heating', 2: 'cooling' ][equipmentStatus] ?: 'idle'
-	
-		if ((haveHumidifier != 'Yes') && (fanIsRunning == true) && (equipmentStatus == 0))
-		{ 
-		    operatingState = "fan only"
-		}
-	
-		else if ((haveHumidifier == 'Yes')  && (fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
-		{
-		    operatingState = "Humidifying"
-		}
-	
-		logInfo("Get Operating State: $operatingState - Fan to $fanState")
-		
-		//fan mode 0=auto, 2=circ, 1=on, 3=followSched
-		
-		n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
-		sendEvent(name: 'thermostatFanMode', value: n)
-	
-		n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto', 4: 'emergency heat' ][switchPos] ?: 'auto'
-		sendEvent(name: 'temperature', value: curTemp, state: n, unit:"°${location.temperatureScale}")
-		sendEvent(name: 'thermostatMode', value: n)
-		lrM(n)
-	
-		//Send events 
-		sendEvent(name: 'thermostatOperatingState', value: operatingState)
-		sendEvent(name: 'fanOperatingState', value: fanState)
-		sendEvent(name: 'coolingSetpoint', value: coolSetPoint, unit:"°${location.temperatureScale}")
-		sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:"°${location.temperatureScale}")
-		sendEvent(name: 'humidity', value: curHumidity as Integer, unit:"%")
-	
-      	if (haveHumidifier == 'Yes') 
+	n = [ 0: 'auto', 2: 'circulate', 1: 'on', 3: 'followSchedule' ][fanMode]
+	sendEvent(name: 'thermostatFanMode', value: n)
+
+	n = [ 1: 'heat', 2: 'off', 3: 'cool', 5: 'auto', 4: 'emergency heat' ][switchPos] ?: 'auto'
+	sendEvent(name: 'temperature', value: curTemp, state: n, unit:"°${location.temperatureScale}")
+	sendEvent(name: 'thermostatMode', value: n)
+	lrM(n)
+
+	//Send events 
+	sendEvent(name: 'thermostatOperatingState', value: operatingState)
+	sendEvent(name: 'fanOperatingState', value: fanState)
+//	sendEvent(name: 'thermostatFanMode', value: fanMode)
+//	sendEvent(name: 'thermostatMode', value: switchPos)
+	sendEvent(name: 'coolingSetpoint', value: coolSetPoint, unit:"°${location.temperatureScale}")
+	sendEvent(name: 'heatingSetpoint', value: heatSetPoint, unit:"°${location.temperatureScale}")
+//	sendEvent(name: 'temperature', value: curTemp, state: switchPos, unit:"°${location.temperatureScale}")
+	sendEvent(name: 'humidity', value: curHumidity as Integer, unit:"%")
+
+      if (haveHumidifier == 'Yes') 
+      {
+      	// kludge to figure out if humidifier is on, fan has to be auto, and if fan is on but not heat/cool and we have enabled the humidifyer it should be humidifying"
+      	// if (debugOutput)
+          log.debug "fanIsRunning = $fanIsRunning, equip status = $equipmentStatus, fanMode = $fanMode, temp = $curTemp, humidity = $curHumidity"
+           
+       	if ((fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
       	{
-      		// kludge to figure out if humidifier is on, fan has to be auto, and if fan is on but not heat/cool and we have enabled the humidifyer it should be humidifying"
-      		// if (debugOutput)
-      	    log.debug "fanIsRunning = $fanIsRunning, equip status = $equipmentStatus, fanMode = $fanMode, temp = $curTemp, humidity = $curHumidity"
-      	     
-      	 	if ((fanIsRunning == true) && (equipmentStatus == 0) && (fanMode == 0))  
-      		{
-      			log.debug "Humidifier is On"
-      	   		sendEvent(name: 'humidifierStatus', value: "Humidifying")
-      		}
-      		else
-      		{
-      			log.debug "Humidifier is Off"
-      			sendEvent(name: 'humidifierStatus', value: "Idle")   
-      		}
+      		log.debug "Humidifier is On"
+         		sendEvent(name: 'humidifierStatus', value: "Humidifying")
       	}
-		def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
-			
-		sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
+      	else
+      	{
+      		log.debug "Humidifier is Off"
+      		sendEvent(name: 'humidifierStatus', value: "Idle")   
+      	}
+      }
+	def now = new Date().format('MM/dd/yyyy h:mm a', location.timeZone)
 		
-		if (enableOutdoorTemps == "Yes") {
+	sendEvent(name: "lastUpdate", value: now, descriptionText: "Last Update: $now")
 	
-		    if (hasOutdoorHumid) {
-		        setOutdoorHumidity(curOutdoorHumidity)
-		        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
-		    }
-		
-		    if (hasOutdoorTemp) {
-		        setOutdoorTemperature(curOutdoorTemp)
-		        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:"°${location.temperatureScale}")
-		    }
-		}
+	if (enableOutdoorTemps == "Yes") {
+
+	    if (hasOutdoorHumid) {
+	        setOutdoorHumidity(curOutdoorHumidity)
+	        sendEvent(name: 'outdoorHumidity', value: curOutdoorHumidity as Integer, unit:"%")
+	    }
+	
+	    if (hasOutdoorTemp) {
+	        setOutdoorTemperature(curOutdoorTemp)
+	        sendEvent(name: 'outdoorTemperature', value: curOutdoorTemp as Integer, unit:"°${location.temperatureScale}")
+	    }
+	}
 	} else { if (descTextEnable) log.info "TCC getStatus failed" }
 }
 
@@ -540,7 +590,13 @@ def getHumidifierStatus(Boolean fromUnauth = false)
     ]
 
     if (debugOutput) log.debug "sending gethumidStatus request: $params"
+/*    asynchttpGet("getHumidStatusHandler", params)
+}
 
+def getHumidStatusHandler(resp, data) {
+	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+        if (debugOutput) log.debug "GetHumidity Request was successful, $resp.status"
+*/
     def CancelLine = [:]
     def Number HumLevel
     def Number HumMin
@@ -549,6 +605,9 @@ def getHumidifierStatus(Boolean fromUnauth = false)
      httpGet(params) { response ->
         if (debugOutput) log.debug "GetHumidity Request was successful, $response.status"
         if (debugOutput) log.debug "response = $response.data"
+
+        //  if (debugOutput) log.debug "ld = $response.data.latestData"
+        //  if (debugOutput) log.debug "humdata = $response.data.latestData.humData"
 
         logInfo("lowerLimit: ${response.data.latestData.humData.lowerLimit}")        
         logInfo("upperLimit: ${response.data.humData.upperLimit}")        
@@ -559,7 +618,7 @@ def getHumidifierStatus(Boolean fromUnauth = false)
         def data = response.getData().toString()
           
         data.split("\n").each {
-
+        	//if (debugOutput) log.debug "working on \"${it}\""
         	if (it.contains("CancelMin")) {
             	CancelLine = it.trim()
             	def pair = CancelLine.split(" ");
@@ -569,26 +628,42 @@ def getHumidifierStatus(Boolean fromUnauth = false)
             	def p1 = pair[1]
             	def p2 = pair[2]
 
-            	def pair2 = p1.split("%")
+            	// log.debug "p0 = $p0"
+            	// log.debug "p1 = $p1"
+            	// log.debug "p2 = $p2"
 
+            	def pair2 = p1.split("%")
+            	//log.debug "pair2 = $pair2"
             	def p20 = pair2[0]
             	def p21 = pair2[1]
             	def p22 = pair2[2]
+
+            	//log.debug "p20 = $p20"
+            	// log.debug "p21 = $p21"
+            	//log.debug "p22 = $p22"
 
             	HumLevel = p21.toInteger()
             	HumMin = p20.toInteger()
 
             	def pair3 = p2.split("%")
+            	//log.debug "pair3 = $pair3"
             	def p30 = pair3[0]
+            	// log.debug "p30 = $p30"
 
             	HumMax = p30.toInteger() 
+
+            	if (debugOutput) log.debug "-----------------------"
+            	log.debug "Got current humidifier level = $HumLevel"
+            	log.debug "Got Current humidifier Min = $HumMin"
+            	log.debug "Got Current humidifier Max= $HumMax"
         	}
         }
         
      	//Send events 
-	sendEvent(name: 'humidifierSetPoint', value: HumLevel as Integer, unit:"%")
-	sendEvent(name: 'humidifierUpperLimit', value: HumMax as Integer, unit:"%")
-	sendEvent(name: 'humidifierLowerLimit', value: HumMin as Integer, unit:"%") 
+	//	sendEvent(name: 'humidifierStatus', value: HumStatus)
+		sendEvent(name: 'humidifierSetPoint', value: HumLevel as Integer, unit:"%")
+		sendEvent(name: 'humidifierUpperLimit', value: HumMax as Integer, unit:"%")
+		sendEvent(name: 'humidifierLowerLimit', value: HumMin as Integer, unit:"%") 
       }
     } 
     catch (e) {
@@ -598,16 +673,20 @@ def getHumidifierStatus(Boolean fromUnauth = false)
     	def p1 = pair[0]
     	def p2 = pair[1]
         
-    	if ((p2 == "Unauthorized") || (p2 == "Read")) {
-            if (fromUnauth) {
+    	if ((p2 == "Unauthorized") || (p2 == "Read"))
+        {
+            if (fromUnauth)
+            {
               log.debug "2nd Unauthorized failure ... giving up!"
             }
-            else {
+            else
+            {
               log.debug "Scheduling a retry in 5 minutes due to Unauthorized!"
               runIn(300,"refreshFromRunin")
             }
-      }
+        }
     }
+
 }
 
 // Update lastRunningMode based on mode and operatingstate
@@ -625,6 +704,7 @@ def deviceDataInit(val) { 	 // reset all params, then set individually
 	    state.deviceSetting = [:]
 	    state.deviceSetting << [SystemSwitch: null, StatusHeat: null, StatusCool: null, HeatSetpoint: null, CoolSetpoint: null, HeatNextPeriod: null, CoolNextPeriod: null, FanMode: null, TemporaryHoldUntilTime: null, VacationHold: null] 
 	}
+//	state.deviceSetting?.size ? log.debug "state.deviceSetting" : log.debug "no state.deviceSetting"
 	state.deviceSetting.StatusHeat=val
 	state.deviceSetting.StatusCool=val
 
@@ -701,6 +781,7 @@ def login(Boolean fromUnauth = false) {
             if (debugOutput) log.debug "Request was successful, $response.status" // ${response.getHeaders()}"
             String allCookies = ""
 
+       //     response.getHeaders('Set-Cookie').each { if (debugOutput) log.debug "---Set-Cookie: ${it.value}" }
 
             response.getHeaders('Set-Cookie').each {
                 String cookie = it.value.split(';|,')[0]
@@ -721,7 +802,10 @@ def login(Boolean fromUnauth = false) {
 
                             if (expires < newDate) {
                                 skipCookie = true
-                             }
+                                //if (debugOutput) log.debug "-skip cookie: $it.value"
+                            } else {
+                                //if (debugOutput) log.debug "+not skipping cookie: expires=$expires. now=$newDate. cookie: $it.value"
+                            }
 
                         }
                     }
@@ -779,6 +863,16 @@ def initialize() {
 }
 
 
+/* def isLoggedIn() {
+    if(!device.data.auth) {
+        if (debugOutput) log.debug "No device.data.auth"
+        return false
+    }
+
+def now = new Date().getTime();
+    return device.data.auth.expires_in > now
+} */
+
 def poll() {
     pollInterval = pollIntervals.toInteger()
     if (pollInterval) runIn(pollInterval, poll) 
@@ -793,8 +887,10 @@ def updated() {
     if (descTextEnable) log.info "description logging is: ${descTextEnable == true}"
     unschedule()
     dbCleanUp()		// remove antique db entries created in older versions and no longer used.
-    if (debugOutput) runIn(1800,logsOff)   
+///    if (debugOutput) runIn(1800,logsOff)   
     if (setPermHold == "Permanent") { state.PermHold = 2 } else { state.PermHold = 1 }
+///    schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
+///    runIn(20, updateCheck) 
     if (debugOutput) log.debug "PermHold now = ${state.PermHold}"
     poll()
 }
@@ -853,5 +949,69 @@ void setOutdoorHumidity(value){
     cd.parse([[name:"humidity", value:value, descriptionText:"${cd.displayName} is ${value}%.", unit:"%"]])
 }
 
+///
+/*
+// Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
+def XupdateCheck()
+{    
+	def paramsUD = [uri: "https://hubitatcommunity.github.io/HoneywellThermo-TCC/version2.json", timeout: 10  ]
+	
+ 	asynchttpGet("updateCheckHandler", paramsUD) 
+}
 
+def updateCheckHandler(resp, data) {
+
+	state.InternalName = "HoneywellThermoTCC_C"
+
+	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
+		respUD = parseJson(resp.data)
+		// log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver 
+		state.Copyright = "${thisCopyright} -- ${version()}"
+		// uses reformattted 'version2.json' 
+		def newVer = padVer(respUD.driver.(state.InternalName).ver)
+		def currentVer = padVer(version())               
+		state.UpdateInfo = (respUD.driver.(state.InternalName).updated)
+            // log.debug "updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
+
+		switch(newVer) {
+			case { it == "NLS"}:
+			      state.Status = "<b>** This Driver is no longer supported by ${respUD.author}  **</b>"       
+			      if (descTextEnable) log.warn "** This Driver is no longer supported by ${respUD.author} **"      
+				break
+			case { it > currentVer}:
+			      state.Status = "<b>New Version Available (Version: ${respUD.driver.(state.InternalName).ver})</b>"
+			      if (descTextEnable) log.warn "** There is a newer version of this Driver available  (Version: ${respUD.driver.(state.InternalName).ver}) **"
+			      if (descTextEnable) log.warn "** $state.UpdateInfo **"
+				break
+			case { it < currentVer}:
+			      state.Status = "<b>You are using a Test version of this Driver (Expecting: ${respUD.driver.(state.InternalName).ver})</b>"
+			      if (descTextEnable) log.warn "You are using a Test version of this Driver (Expecting: ${respUD.driver.(state.InternalName).ver})"
+				break
+			default:
+				state.Status = "Current"
+				if (descTextEnable) log.info "You are using the current version of this driver"
+				break
+		}
+
+		sendEvent(name: "chkUpdate", value: state.UpdateInfo)
+		sendEvent(name: "chkStatus", value: state.Status)
+      }
+      else
+      {
+           log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI"
+      }
+}
+
+// /*
+	padVer
+
+	Version progression of 1.4.9 to 1.4.10 would mis-compare unless each column is padded into two-digits first.
+
+// *
+def padVer(ver) {
+	def pad = ""
+	ver.replaceAll( "[vV]", "" ).split( /\./ ).each { pad += it.padLeft( 2, '0' ) }
+	return pad
+}
+*/ ///
 def getThisCopyright(){"&copy; 2020 C Steele "}
