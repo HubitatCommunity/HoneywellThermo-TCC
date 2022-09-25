@@ -15,6 +15,8 @@
  *
  *
  *
+ * csteele: v1.3.25  Updated supportedThermostatModes and supportedThermostatFanModes to add double quotes to support HE platform version 2.3.3.x
+ * csteele: v1.3.24  removed number typing on setCoolingSetpoint and setHeatingSetpoint used by Thermostat Controller app
  * csteele: v1.3.23  preset supportedThermostatFanModes & supportedThermostatModes used by Thermostat Controller app.
  * 			     round curTemp to 2 places.
  * csteele: v1.3.22  Incorporated PR from HeatVent. Typo in a var name.
@@ -90,7 +92,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.23"  }
+ public static String version()     {  return "v1.3.25"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -159,23 +161,7 @@ def setCoolingSetpoint(temp) {
         
         if(device.data.SetStatus==1)
         {
-            sendEvent(name: 'coolingSetpoint', value: temp as Integer, unit:"°${location.temperatureScale}")
-        }
-}
-
-
-def setCoolingSetpoint(double temp) {
-	double valIn = temp // for limits check
-	temp = ensureRange( temp.toFloat(), state.coolLowerSetptLimit.toFloat(), state.coolUpperSetptLimit.toFloat() )
-	if (valIn != temp) log.warn "SetPoint limited due to: out of range" 
-        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
-        state.deviceSetting.CoolSetpoint = temp
-        log.info "Setting cool set point down to: ${temp}"
-        setStatus()
-        
-        if(device.data.SetStatus==1)
-        {
-            sendEvent(name: 'coolingSetpoint', value: temp as double, unit:"°${location.temperatureScale}")
+            sendEvent(name: 'coolingSetpoint', value: temp, unit:"°${location.temperatureScale}")
         }
 }
 
@@ -191,25 +177,8 @@ def setHeatingSetpoint(temp) {
         
         if(device.data.SetStatus==1)
         {
-            sendEvent(name: 'heatingSetpoint', value: temp as Integer, unit:"°${location.temperatureScale}")
+            sendEvent(name: 'heatingSetpoint', value: temp, unit:"°${location.temperatureScale}")
         }
-}
-
-
-def setHeatingSetpoint(Double temp)
-{
-	double valIn = temp // for limits check
-	temp = ensureRange( temp.toFloat(), state.heatLowerSetptLimit.toFloat(), state.heatUpperSetptLimit.toFloat() )
-	if (valIn != temp) log.warn "SetPoint limited due to: out of range" 
-        deviceDataInit(state.PermHold) 	 // reset all params, then set individually
-        state.deviceSetting.HeatSetpoint = temp
-        log.info "Setting heat set point down to: ${temp}"
-        setStatus()
-        
-        if(device.data.SetStatus==1)
-        {
-        	sendEvent(name: 'heatingSetpoint', value: temp as double, unit:"°${location.temperatureScale}")
-        }	
 }
 
 
@@ -352,6 +321,16 @@ void settingsAccumWait() {
 	// prepare for the next cycle by clearing all the values just sent.
 	deviceDataInit(null)
 
+}    
+
+
+def setStatusHandler(resp, data) {
+	if(resp.getStatus() == 408) {if (debugOutput) log.debug "TCC Request timed out, $resp.status"}
+	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+		def setStatusResult = resp.data
+		if (debugOutput) log.debug "Request was successful, $resp.status"
+		device.data.SetStatus = 1
+	} else { if (descTextEnable) log.info "TCC setStatus failed" }
 }
 
 
@@ -390,13 +369,13 @@ def getStatusHandler(resp, data) {
 	
       if (debugOutput) { 
           log.debug "Request was successful, $resp.status"
-          log.debug "data = $setStatusResult"
+      //    log.debug "data = $setStatusResult"
           log.debug "ld = $setStatusResult.latestData.uiData"
           log.debug "ld = $setStatusResult.latestData.fanData"
       }
         
-	sendEvent(name: 'supportedThermostatFanModes', value: ['auto', 'circulate', 'on'] )
-	sendEvent(name: 'supportedThermostatModes', value: ['auto', 'cool', 'emergency heat', 'heat', 'off'] )
+	sendEvent(name: 'supportedThermostatFanModes', value: ["\"auto\"", "\"circulate\"", "\"on\""] )
+	sendEvent(name: 'supportedThermostatModes', value: ["\"auto\"", "\"cool\"", "\"emergency heat\"", "\"heat\"", "\"off\""] )
 
 	Float curTemp = setStatusResult.latestData.uiData.DispTemperature
 	def switchPos = setStatusResult.latestData.uiData.SystemSwitchPosition
@@ -571,7 +550,6 @@ def getHumidifierStatus(Boolean fromUnauth = false)
         def data = response.getData().toString()
           
         data.split("\n").each {
-
         	if (it.contains("CancelMin")) {
             	CancelLine = it.trim()
             	def pair = CancelLine.split(" ");
@@ -645,6 +623,7 @@ def deviceDataInit(val) { 	 // reset all params, then set individually
 	    state.deviceSetting = [:]
 	    state.deviceSetting << [SystemSwitch: null, StatusHeat: null, StatusCool: null, HeatSetpoint: null, CoolSetpoint: null, HeatNextPeriod: null, CoolNextPeriod: null, FanMode: null, TemporaryHoldUntilTime: null, VacationHold: null] 
 	}
+//	state.deviceSetting?.size ? log.debug "state.deviceSetting" : log.debug "no state.deviceSetting"
 	state.deviceSetting.StatusHeat=val
 	state.deviceSetting.StatusCool=val
 
@@ -712,7 +691,6 @@ def login(Boolean fromUnauth = false) {
         body: [timeOffset: '240', UserName: "${settings.username}", Password: "${settings.password}", RememberMe: 'false']
     ]
 
-   // log.debug "Params: $params.headers $params.body"
     device.data.cookiess = ''
 
     try {
@@ -720,6 +698,8 @@ def login(Boolean fromUnauth = false) {
             response ->
             if (debugOutput) log.debug "Request was successful, $response.status" // ${response.getHeaders()}"
             String allCookies = ""
+
+       //     response.getHeaders('Set-Cookie').each { if (debugOutput) log.debug "---Set-Cookie: ${it.value}" }
 
             response.getHeaders('Set-Cookie').each {
                 String cookie = it.value.split(';|,')[0]
@@ -763,7 +743,6 @@ def login(Boolean fromUnauth = false) {
             if (cookieCount < 9) {
 			ofExit = false
             }
-            //log.debug "cookies: $device.data.cookiess"
         }
     } catch (e) {
         log.warn "Something went wrong during login: $e"
@@ -870,6 +849,5 @@ void setOutdoorHumidity(value){
 		}
     cd.parse([[name:"humidity", value:value, descriptionText:"${cd.displayName} is ${value}%.", unit:"%"]])
 }
-
 
 def getThisCopyright(){"&copy; 2020 C Steele "}
