@@ -15,6 +15,7 @@
  *
  *
  *
+ * csteele: v1.3.26  Updated minimum cookie count to be a variable: minCookieCount. 
  * csteele: v1.3.25  Updated supportedThermostatModes and supportedThermostatFanModes to add double quotes to support HE platform version 2.3.3.x
  * csteele: v1.3.24  removed number typing on setCoolingSetpoint and setHeatingSetpoint used by Thermostat Controller app
  * csteele: v1.3.23  preset supportedThermostatFanModes & supportedThermostatModes used by Thermostat Controller app.
@@ -92,7 +93,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.25"  }
+ public static String version()     {  return "v1.3.26"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -662,7 +663,7 @@ void componentRefresh(cd)
 }
 
 def refresh(Boolean fromUnauth = false) {
-    if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, units: = °${location.temperatureScale}, fromUnauth = $fromUnauth"
+    if (debugOutput) log.debug "here Honeywell TCC 'refresh', pollInterval: $pollInterval, unit: = °${location.temperatureScale}, fromUnauth = $fromUnauth"
 	if ( !login(fromUnauth) ) {
 		pauseExecution(6000)
 		if ( !login(fromUnauth) ) {
@@ -676,6 +677,7 @@ def refresh(Boolean fromUnauth = false) {
 def login(Boolean fromUnauth = false) {
 	if (debugOutput) log.debug "Honeywell TCC 'login'"
 	Boolean ofExit = true 	// default: assume that login works and return a True.
+	int minCookieCount = 8
 
     Map params = [
         uri: "https://${tccSite()}/portal/",
@@ -740,7 +742,7 @@ def login(Boolean fromUnauth = false) {
                 }
             }
             int cookieCount = device.data.cookiess.split(";", -1).length - 1;
-            if (cookieCount < 9) {
+            if (cookieCount < minCookieCount) {
 			ofExit = false
             }
         }
