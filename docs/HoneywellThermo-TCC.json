@@ -1,12 +1,12 @@
 {
   "packageName": "HoneywellThermo-TCC",
   "author": "csteele",
-  "version": "1.3.25",
+  "version": "1.3.26",
   "minimumHEVersion": "1.3.18",
   "dateReleased": "2022-09-25",
   "category": "Control",
   "tags": ["Temperature & Humidity"],
-  "releaseNotes": "v1.3.25  Updated supportedThermostatModes and supportedThermostatFanModes to add double quotes to support HE platform version 2.3.3.x\nv1.3.24  removed number typing on setCoolingSetpoint and setHeatingSetpoint used by Thermostat Controller app\nv1.3.23  preset supportedThermostatFanModes & supportedThermostatModes used by Thermostat Controller app.\n    round curTemp to 2 places.",
+  "releaseNotes": "v1.3.26  Updated minimum cookie count to be a variable: minCookieCount.\n   v1.3.25  Updated supportedThermostatModes and supportedThermostatFanModes to add double quotes to support HE platform version 2.3.3.x\nv1.3.24  removed number typing on setCoolingSetpoint and setHeatingSetpoint used by Thermostat Controller app",
   "drivers": [
     {
       "id": "0982a2be-81b4-43b1-88ed-350fa8ce62c9",
