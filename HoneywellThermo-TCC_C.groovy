@@ -15,6 +15,7 @@
  *
  *
  *
+ * csteele: v1.3.27  Added a hint for Device ID parameter
  * csteele: v1.3.26  Updated minimum cookie count to be a variable: minCookieCount. 
  * csteele: v1.3.25  Updated supportedThermostatModes and supportedThermostatFanModes to add double quotes to support HE platform version 2.3.3.x
  * csteele: v1.3.24  removed number typing on setCoolingSetpoint and setHeatingSetpoint used by Thermostat Controller app
@@ -93,7 +94,7 @@
  *
 */
 
- public static String version()     {  return "v1.3.26"  }
+ public static String version()     {  return "v1.3.27"  }
  public static String tccSite() 	{  return "mytotalconnectcomfort.com"  }
 
 metadata {
@@ -125,9 +126,9 @@ metadata {
     }
 
     preferences {
-       input name: "username", type: "text", title: "Username", description: "Your Total Comfort User Name", required: true
-       input name: "password", type: "password", title: "Password", description: "Your Total Comfort password",required: true
-       input name: "honeywelldevice", type: "text", title: "Device ID", description: "Your Device ID", required: true
+       input name: "username", type: "text", title: "<b>Username</b>", description: "<i>Your Total Comfort User Name</i><p>", required: true
+       input name: "password", type: "password", title: "<b>Password</b>", description: "<i>Your Total Comfort password</i><p>",required: true
+       input name: "honeywelldevice", type: "text", title: "<font color = 'IndianRed'><b>Device ID</b></font>", description: "<i>6-8 numbers found in the URL of mytotalcomfort site when viewing the Thermostat mockup.</i><p>", required: true
        input name: "haveHumidifier", type: "enum", title: "Do you have an optional whole house steam humidifier and want to enable it?", options: ["Yes", "No"], required: true, defaultValue: "No"
        input name: "enableOutdoorTemps", type: "enum", title: "Do you have the optional outdoor temperature sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
        input name: "enableHumidity", type: "enum", title: "Do you have the optional Humidity sensor and want to enable it?", options: ["Yes", "No"], required: false, defaultValue: "No"
